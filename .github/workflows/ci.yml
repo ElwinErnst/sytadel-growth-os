@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # Offline by design: no ANTHROPIC_API_KEY is provided. Tests use the
+    # deterministic fixture provider, so CI never calls a real model.
+    env:
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USER: growth
+      DB_PASS: growth-dev-insecure
+      DB_NAME: growth_os
+      GROWTH_LLM_PROVIDER: fixture
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: growth
+          POSTGRES_PASSWORD: growth-dev-insecure
+          POSTGRES_DB: growth_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U growth -d growth_os"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (reproducible)
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Run migrations
+        run: npm run migration:run
+
+      - name: Test (fixture provider, no API keys)
+        run: npm test
