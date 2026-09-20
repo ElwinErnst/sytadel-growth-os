@@ -78,7 +78,7 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 | Track | Slice | Deliverable | External effect |
 |---|---|---|---|
 | **Core** | **1 ✅** | Manual evidence → signals → Founder Brief (CLI). *Shipped.* | None |
-| Core | 2 | Multi-evidence runs, workspace management, brief query/export, richer signal taxonomy & confidence calibration | None |
+| **Core** | **2 ✅** | Multi-evidence runs; workspace/evidence/run/signal/brief listing (paginated); expanded signal taxonomy; computed calibration summary in the brief. *Shipped.* | None |
 | **Research (autonomous)** | 3 | Web fetch with **SSRF controls** + redirect validation; read-only connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job posts, funding); scheduled research runs | Fetch → **Governance track begins** |
 | Research | 4 | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals | Fetch |
 | **ICP & Opportunity** | 5 | **ICP Agent**: refine ideal customer from signals + the concrete hypotheses above | None |
@@ -148,5 +148,6 @@ companies deploying AI workers.
 
 ## Status
 
-- **Slice 1: shipped** (this repo). Next recommended: **Slice 2**, then **Slice 3**
-  (which activates the Governance track). See `docs/next-slice-prompt.md`.
+- **Slices 1–2: shipped** (this repo). Next recommended: **Slice 3**, which
+  activates the Governance track (first external effect = web fetch, needs SSRF
+  controls). See `docs/next-slice-prompt.md`.

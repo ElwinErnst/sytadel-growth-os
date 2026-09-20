@@ -4,9 +4,11 @@ Private market-research and growth workbench for Sytadel. It turns
 operator-supplied evidence into structured signals and an evidence-backed
 **Founder Brief**, so the human decides strategy from facts — not vibes.
 
-> **Status: Slice 1 (MVP).** CLI-only. One workflow: manual evidence → market
-> signals → Founder Brief. No web fetching, no HTTP data endpoints, no outbound
-> messaging. See [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
+> **Status: Slice 2 (core hardening).** CLI-only. Core workflow (manual evidence
+> → market signals → Founder Brief) plus multi-evidence runs, workspace/run/brief
+> listing, and a computed calibration summary in the brief. No web fetching, no
+> HTTP data endpoints, no outbound messaging. See
+> [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
 
 This is a **separate, private repository**. It is not a Sytadel submodule and is
 not part of the Sytadel Compose stack. It integrates with Sytadel only through
@@ -89,15 +91,24 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 |---|---|
 | `ingest` | Persist one piece of evidence (dedup per workspace). |
 | `analyze` | Ingest (or reference) evidence, then run the full workflow to a brief. |
+| `workspace:list` | List all workspaces. |
+| `workspace:show --workspace <slug>` | Show a workspace with evidence/run/signal/brief counts. |
+| `evidence:list --workspace <slug>` | List a workspace's evidence (paginated). |
+| `run:list --workspace <slug>` | List runs (optional `--status`, paginated). |
 | `run:show --run <id>` | Show a run's status, stage, tokens, signal count, error. |
 | `run:resume --run <id>` | Resume an interrupted/failed run from its last durable stage. |
+| `signal:list --run <id>` | List the signals extracted by a run. |
+| `brief:list --workspace <slug>` | List a workspace's briefs (paginated). |
 | `brief:show --run <id>` | Print the rendered Founder Brief (Markdown). |
 | `brief:export --run <id> --out <path>` | Write the brief to a file. |
 
 `analyze` flags: `--workspace <slug>` (required); either `--evidence <id> [<id>…]`
-or an inline `--file <path> --source-url <url> --source-name <name> --retrieved-at
-<iso>`; optional `--idempotency-key <key>` (omit for a fresh reprocess) and
-`--executor <id>` (local operator identity; default `local-cli`).
+(multiple ids analyze several sources in one run) or an inline `--file <path>
+--source-url <url> --source-name <name> --retrieved-at <iso>`; optional
+`--idempotency-key <key>` (omit for a fresh reprocess) and `--executor <id>`
+(local operator identity; default `local-cli`).
+
+List commands accept `--limit <n>` (default 20, max 100) and `--offset <n>`.
 
 ## Retry vs. reprocess
 

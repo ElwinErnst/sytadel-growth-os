@@ -9,6 +9,7 @@ import { MarketSignal } from '../signals/entities/market-signal.entity';
 import { BriefOutput } from '../llm/schemas/brief.schema';
 import { renderBriefMarkdown } from './brief-renderer';
 import { ReferenceIntegrityError } from '../../common/errors';
+import { PageParams } from '../../common/pagination';
 
 @Injectable()
 export class BriefService {
@@ -67,5 +68,21 @@ export class BriefService {
 
   async findByRun(runId: string): Promise<FounderBrief | null> {
     return this.repo.findOne({ where: { runId } });
+  }
+
+  async listByWorkspace(
+    workspaceId: string,
+    page: PageParams,
+  ): Promise<FounderBrief[]> {
+    return this.repo.find({
+      where: { workspaceId },
+      order: { createdAt: 'DESC', id: 'ASC' },
+      take: page.limit,
+      skip: page.offset,
+    });
+  }
+
+  async countByWorkspace(workspaceId: string): Promise<number> {
+    return this.repo.count({ where: { workspaceId } });
   }
 }

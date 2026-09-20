@@ -9,6 +9,7 @@ import { BriefService } from '../modules/briefs/brief.service';
 import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import { RunStatus } from '../common/enums';
+import { toPageParams } from '../common/pagination';
 import {
   CliUsageError,
   getMany,
@@ -23,19 +24,26 @@ const USAGE = `Sytadel Growth OS — CLI
 Commands:
   ingest       --workspace <slug> --file <path> --source-url <url>
                --source-name <name> --retrieved-at <iso>
-  analyze      --workspace <slug>
-               (--file <path> --source-url <url> --source-name <name> --retrieved-at <iso>
-                | --evidence <id> [<id> ...])
-               [--idempotency-key <key>] [--executor <id>]
-  run:show     --run <id>
-  run:resume   --run <id>
-  brief:show   --run <id>
-  brief:export --run <id> --out <path>
+  analyze        --workspace <slug>
+                 (--file <path> --source-url <url> --source-name <name> --retrieved-at <iso>
+                  | --evidence <id> [<id> ...])
+                 [--idempotency-key <key>] [--executor <id>]
+  workspace:list
+  workspace:show --workspace <slug>
+  evidence:list  --workspace <slug> [--limit <n>] [--offset <n>]
+  run:list       --workspace <slug> [--status <status>] [--limit <n>] [--offset <n>]
+  run:show       --run <id>
+  run:resume     --run <id>
+  signal:list    --run <id>
+  brief:list     --workspace <slug> [--limit <n>] [--offset <n>]
+  brief:show     --run <id>
+  brief:export   --run <id> --out <path>
 
 Notes:
   - Evidence is operator-supplied; source URLs are DECLARED, not fetched.
   - Omitting --idempotency-key starts a NEW run (reprocess). Reusing a key
-    RETRIES the same run (resumes from its last durable stage).`;
+    RETRIES the same run (resumes from its last durable stage).
+  - --evidence accepts multiple ids to analyze several sources in one run.`;
 
 /**
  * Command implementations for the CLI. Each returns a process exit code so
@@ -59,6 +67,18 @@ export class GrowthCli {
           return await this.ingest(args);
         case 'analyze':
           return await this.analyze(args);
+        case 'workspace:list':
+          return await this.workspaceList();
+        case 'workspace:show':
+          return await this.workspaceShow(args);
+        case 'evidence:list':
+          return await this.evidenceList(args);
+        case 'run:list':
+          return await this.runList(args);
+        case 'signal:list':
+          return await this.signalList(args);
+        case 'brief:list':
+          return await this.briefList(args);
         case 'run:show':
           return await this.runShow(args);
         case 'run:resume':
@@ -121,6 +141,100 @@ export class GrowthCli {
     return run.status === RunStatus.COMPLETED ? 0 : 1;
   }
 
+  private async workspaceList(): Promise<number> {
+    const all = await this.workspaces.list();
+    if (all.length === 0) {
+      console.log('No workspaces yet.');
+      return 0;
+    }
+    for (const ws of all) {
+      console.log(`${ws.slug}\t${ws.name}\t${ws.id}`);
+    }
+    return 0;
+  }
+
+  private async workspaceShow(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const [evidence, runs, signals, briefs] = await Promise.all([
+      this.evidence.countByWorkspace(ws.id),
+      this.orchestrator.countRuns(ws.id),
+      this.signals.countByWorkspace(ws.id),
+      this.briefs.countByWorkspace(ws.id),
+    ]);
+    console.log(`Workspace ${ws.slug} (${ws.id})`);
+    console.log(`  name: ${ws.name}`);
+    console.log(
+      `  evidence: ${evidence}   runs: ${runs}   signals: ${signals}   briefs: ${briefs}`,
+    );
+    return 0;
+  }
+
+  private async evidenceList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const page = toPageParams(getOne(args, 'limit'), getOne(args, 'offset'));
+    const rows = await this.evidence.listByWorkspace(ws.id, page);
+    const total = await this.evidence.countByWorkspace(ws.id);
+    console.log(`Evidence in ${ws.slug} (${rows.length} of ${total}):`);
+    for (const e of rows) {
+      console.log(
+        `  ${e.id}\t${e.ingestedAt.toISOString()}\t${e.contentBytes}B\t${e.sourceName}`,
+      );
+    }
+    return 0;
+  }
+
+  private async runList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const page = toPageParams(getOne(args, 'limit'), getOne(args, 'offset'));
+    const statusRaw = getOne(args, 'status');
+    const status = this.parseStatus(statusRaw);
+    if (statusRaw !== undefined && status === undefined) {
+      console.error(
+        `Invalid --status "${statusRaw}". Use one of: ${Object.values(RunStatus).join(', ')}`,
+      );
+      return 2;
+    }
+    const rows = await this.orchestrator.listRuns(ws.id, page, status);
+    const total = await this.orchestrator.countRuns(ws.id);
+    console.log(`Runs in ${ws.slug} (${rows.length} of ${total}):`);
+    for (const r of rows) {
+      console.log(
+        `  ${r.id}\t${r.status}\t${r.stage}\t${r.createdAt.toISOString()}\ttok=${r.inputTokens + r.outputTokens}`,
+      );
+    }
+    return 0;
+  }
+
+  private async signalList(args: ParsedArgs): Promise<number> {
+    const runId = requireOne(args, 'run');
+    const rows = await this.signals.listByRun(runId);
+    console.log(`Signals for run ${runId} (${rows.length}):`);
+    for (const s of rows) {
+      console.log(
+        `  [${s.category}/${s.kind}] conf=${s.confidence.toFixed(2)}  ${s.statement}`,
+      );
+    }
+    return 0;
+  }
+
+  private async briefList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const page = toPageParams(getOne(args, 'limit'), getOne(args, 'offset'));
+    const rows = await this.briefs.listByWorkspace(ws.id, page);
+    const total = await this.briefs.countByWorkspace(ws.id);
+    console.log(`Briefs in ${ws.slug} (${rows.length} of ${total}):`);
+    for (const b of rows) {
+      console.log(
+        `  run=${b.runId}\t${b.createdAt.toISOString()}\t${b.title}`,
+      );
+    }
+    return 0;
+  }
+
   private async runShow(args: ParsedArgs): Promise<number> {
     const run = await this.orchestrator.getRun(requireOne(args, 'run'));
     await this.printRunSummary(run);
@@ -159,6 +273,24 @@ export class GrowthCli {
   }
 
   // --- helpers -------------------------------------------------------------
+
+  /** Resolve an existing workspace by --workspace slug; error if absent. */
+  private async resolveWorkspace(args: ParsedArgs) {
+    const slug = requireOne(args, 'workspace');
+    const ws = await this.workspaces.findBySlug(slug);
+    if (!ws) {
+      console.error(`Workspace "${slug}" not found.`);
+      return null;
+    }
+    return ws;
+  }
+
+  private parseStatus(raw: string | undefined): RunStatus | undefined {
+    if (raw === undefined) return undefined;
+    return (Object.values(RunStatus) as string[]).includes(raw)
+      ? (raw as RunStatus)
+      : undefined;
+  }
 
   private async ingestFromArgs(args: ParsedArgs) {
     const slug = requireOne(args, 'workspace');

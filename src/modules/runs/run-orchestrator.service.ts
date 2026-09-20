@@ -23,6 +23,7 @@ import {
 } from '../../common/errors';
 import { InvalidModelOutputError } from '../../common/util/json';
 import { LlmProviderError, LlmUsage } from '../llm/llm-provider.interface';
+import { PageParams } from '../../common/pagination';
 import { PROMPT_VERSION, WORKFLOW_VERSION } from '../analysis/prompts';
 
 export type StartRunInput = {
@@ -153,6 +154,23 @@ export class RunOrchestrator {
     const run = await this.runs.findOne({ where: { id: runId } });
     if (!run) throw new NotFoundException(`Run ${runId} not found`);
     return run;
+  }
+
+  async listRuns(
+    workspaceId: string,
+    page: PageParams,
+    status?: RunStatus,
+  ): Promise<AgentRun[]> {
+    return this.runs.find({
+      where: status ? { workspaceId, status } : { workspaceId },
+      order: { createdAt: 'DESC', id: 'ASC' },
+      take: page.limit,
+      skip: page.offset,
+    });
+  }
+
+  async countRuns(workspaceId: string): Promise<number> {
+    return this.runs.count({ where: { workspaceId } });
   }
 
   // --- internals -----------------------------------------------------------

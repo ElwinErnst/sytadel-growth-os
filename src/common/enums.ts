@@ -51,12 +51,20 @@ export enum EvidenceProvenance {
   MANUAL = 'manual',
 }
 
-/** Category of a market signal. */
+/**
+ * Category of a market signal. Kept as a closed set so the analysis prompt and
+ * the schema stay in lockstep (the prompt lists these values dynamically).
+ * Values are stored as text, so adding a category needs no migration.
+ */
 export enum SignalCategory {
   MARKET = 'market',
   COMPETITION = 'competition',
   SEGMENT = 'segment',
   PROBLEM = 'problem',
+  PRICING = 'pricing',
+  TREND = 'trend',
+  POSITIONING = 'positioning',
+  RISK = 'risk',
 }
 
 /**

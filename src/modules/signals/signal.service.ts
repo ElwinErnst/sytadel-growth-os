@@ -76,4 +76,8 @@ export class SignalService {
       order: { createdAt: 'ASC', id: 'ASC' },
     });
   }
+
+  async countByWorkspace(workspaceId: string): Promise<number> {
+    return this.repo.count({ where: { workspaceId } });
+  }
 }
