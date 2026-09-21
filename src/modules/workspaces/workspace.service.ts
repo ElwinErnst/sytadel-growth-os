@@ -39,4 +39,8 @@ export class WorkspaceService {
   async findBySlug(slug: string): Promise<Workspace | null> {
     return this.repo.findOne({ where: { slug: slug.trim().toLowerCase() } });
   }
+
+  async list(): Promise<Workspace[]> {
+    return this.repo.find({ order: { createdAt: 'ASC', id: 'ASC' } });
+  }
 }

@@ -3,26 +3,11 @@
 Copy-paste to continue the build. Do discovery first; do not assume anything not
 verified in this repo or in `sytadel-suite`.
 
-## Recommended next: Slice 2 — Core hardening
+> **Done:** Slice 1 (evidence → signals → Founder Brief) and Slice 2 (multi-
+> evidence, listing/query CLI, expanded taxonomy, calibration summary). See
+> `docs/mvp/`.
 
-> Extend Sytadel Growth OS with Slice 2 (no external effects, still CLI-first).
->
-> 1. **Multi-evidence runs:** `analyze` should accept several `--file`/`--evidence`
->    inputs; the analysis step must handle N evidence blocks and keep the
->    `evidenceRef` → id mapping correct and validated.
-> 2. **Workspace management:** `workspace:list`, `workspace:show <slug>` (counts of
->    evidence/runs/briefs); keep strict isolation.
-> 3. **Brief/run querying:** `run:list --workspace <slug>` and `brief:list`, with a
->    stable, paginated ordering.
-> 4. **Signal taxonomy & calibration:** richer categories and a confidence
->    calibration note in the brief; keep fact-vs-hypothesis separation.
->
-> Constraints unchanged: deterministic around the model, schema-validated output,
-> DB-enforced idempotency/dedup, sanitized errors, workspace isolation, fixtures in
-> tests/CI (no provider keys), no web fetch, no HTTP data endpoints. Add a
-> migration if the schema changes. Do not modify `sytadel-suite`.
-
-## Then: Slice 3 — Autonomous research + Governance begins
+## Recommended next: Slice 3 — Autonomous research + Governance begins
 
 This is the first slice with an external effect (web fetch), so it **activates the
 Governance track**. Before writing fetch code:

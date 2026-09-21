@@ -63,6 +63,64 @@ describe('RunOrchestrator (integration)', () => {
     }
   });
 
+  it('handles multiple evidence and maps each signal to the right source', async () => {
+    const twoSignals = JSON.stringify({
+      signals: [
+        {
+          category: 'pricing',
+          kind: 'fact',
+          statement: 'From the first source',
+          evidenceQuote: null,
+          confidence: 0.7,
+          evidenceRef: 1,
+        },
+        {
+          category: 'competition',
+          kind: 'hypothesis',
+          statement: 'From the second source',
+          evidenceQuote: null,
+          confidence: 0.6,
+          evidenceRef: 2,
+        },
+      ],
+    });
+    const t = await createTestApp(stepScript(twoSignals, briefJson()));
+    try {
+      const slug = uniqueSlug();
+      const workspace = await t.workspaces.getOrCreate(slug);
+      const e1 = await t.evidence.ingest({
+        workspaceId: workspace.id,
+        sourceName: 'first',
+        sourceUrl: 'https://a.test',
+        retrievedAt: new Date('2026-09-20T00:00:00Z'),
+        content: 'first source content',
+      });
+      const e2 = await t.evidence.ingest({
+        workspaceId: workspace.id,
+        sourceName: 'second',
+        sourceUrl: 'https://b.test',
+        retrievedAt: new Date('2026-09-20T00:00:00Z'),
+        content: 'second source content',
+      });
+
+      const run = await t.orchestrator.startRun({
+        workspace,
+        evidenceIds: [e1.id, e2.id],
+        idempotencyKey: uniqueSlug('key'),
+        executorId: 'tester',
+      });
+      expect(run.status).toBe(RunStatus.COMPLETED);
+
+      const signals = await t.signals.listByRun(run.id);
+      expect(signals).toHaveLength(2);
+      const byStatement = new Map(signals.map((s) => [s.statement, s.evidenceId]));
+      expect(byStatement.get('From the first source')).toBe(e1.id);
+      expect(byStatement.get('From the second source')).toBe(e2.id);
+    } finally {
+      await t.close();
+    }
+  });
+
   it('idempotency: same key retries the same run; new key reprocesses', async () => {
     const t = await createTestApp(
       stepScript(analysisJson('signal'), briefJson()),

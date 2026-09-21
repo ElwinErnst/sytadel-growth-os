@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { SourceEvidence } from './entities/source-evidence.entity';
 import { EvidenceProvenance } from '../../common/enums';
+import { PageParams } from '../../common/pagination';
 import { sha256 } from '../../common/util/hash';
 
 export type IngestEvidenceInput = {
@@ -77,6 +78,22 @@ export class EvidenceService {
     id: string,
   ): Promise<SourceEvidence | null> {
     return this.repo.findOne({ where: { id, workspaceId } });
+  }
+
+  async listByWorkspace(
+    workspaceId: string,
+    page: PageParams,
+  ): Promise<SourceEvidence[]> {
+    return this.repo.find({
+      where: { workspaceId },
+      order: { ingestedAt: 'DESC', id: 'ASC' },
+      take: page.limit,
+      skip: page.offset,
+    });
+  }
+
+  async countByWorkspace(workspaceId: string): Promise<number> {
+    return this.repo.count({ where: { workspaceId } });
   }
 }
 

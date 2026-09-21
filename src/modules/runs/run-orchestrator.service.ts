@@ -23,6 +23,7 @@ import {
 } from '../../common/errors';
 import { InvalidModelOutputError } from '../../common/util/json';
 import { LlmProviderError, LlmUsage } from '../llm/llm-provider.interface';
+import { PageParams } from '../../common/pagination';
 import { PROMPT_VERSION, WORKFLOW_VERSION } from '../analysis/prompts';
 
 export type StartRunInput = {
@@ -85,7 +86,7 @@ export class RunOrchestrator {
       const evidenceRows = await this.runEvidence.find({
         where: { runId: run.id },
         relations: { evidence: true },
-        order: { createdAt: 'ASC', id: 'ASC' },
+        order: { position: 'ASC', createdAt: 'ASC', id: 'ASC' },
       });
       if (evidenceRows.length === 0) {
         throw new ReferenceIntegrityError('Run has no attached evidence');
@@ -155,6 +156,23 @@ export class RunOrchestrator {
     return run;
   }
 
+  async listRuns(
+    workspaceId: string,
+    page: PageParams,
+    status?: RunStatus,
+  ): Promise<AgentRun[]> {
+    return this.runs.find({
+      where: status ? { workspaceId, status } : { workspaceId },
+      order: { createdAt: 'DESC', id: 'ASC' },
+      take: page.limit,
+      skip: page.offset,
+    });
+  }
+
+  async countRuns(workspaceId: string): Promise<number> {
+    return this.runs.count({ where: { workspaceId } });
+  }
+
   // --- internals -----------------------------------------------------------
 
   private async getOrCreateRun(input: StartRunInput): Promise<AgentRun> {
@@ -220,7 +238,12 @@ export class RunOrchestrator {
       .insert()
       .into(RunEvidence)
       .values(
-        unique.map((evidenceId) => ({ runId: run.id, evidenceId, workspaceId })),
+        unique.map((evidenceId, position) => ({
+          runId: run.id,
+          evidenceId,
+          workspaceId,
+          position,
+        })),
       )
       .orIgnore() // idempotent: (run_id, evidence_id) unique
       .execute();
