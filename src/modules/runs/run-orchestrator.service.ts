@@ -86,7 +86,7 @@ export class RunOrchestrator {
       const evidenceRows = await this.runEvidence.find({
         where: { runId: run.id },
         relations: { evidence: true },
-        order: { createdAt: 'ASC', id: 'ASC' },
+        order: { position: 'ASC', createdAt: 'ASC', id: 'ASC' },
       });
       if (evidenceRows.length === 0) {
         throw new ReferenceIntegrityError('Run has no attached evidence');
@@ -238,7 +238,12 @@ export class RunOrchestrator {
       .insert()
       .into(RunEvidence)
       .values(
-        unique.map((evidenceId) => ({ runId: run.id, evidenceId, workspaceId })),
+        unique.map((evidenceId, position) => ({
+          runId: run.id,
+          evidenceId,
+          workspaceId,
+          position,
+        })),
       )
       .orIgnore() // idempotent: (run_id, evidence_id) unique
       .execute();

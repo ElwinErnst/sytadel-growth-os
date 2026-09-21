@@ -22,7 +22,11 @@ external effect or schema change. Still CLI-first, still offline-testable.
   breakdown), computed from persisted signals.
 
 **Out (unchanged):** web fetch/SSRF, scheduling, HTTP endpoints, Sytadel-governed
-identity, any external side effect. No schema migration in this slice.
+identity, any external side effect.
+
+One small additive migration ships in this slice: `run_evidence.position`, which
+makes the order in which evidence is presented to the model deterministic and
+equal to the operator-supplied order (independent of insertion timestamps).
 
 ## Design notes
 

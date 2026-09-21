@@ -31,6 +31,14 @@ export class RunEvidence {
   @Column({ name: 'evidence_id', type: 'uuid' })
   evidenceId!: string;
 
+  /**
+   * 0-based position in the operator-supplied evidence order. Makes the order in
+   * which evidence is presented to the model deterministic and equal to what the
+   * operator passed — independent of insertion timestamps.
+   */
+  @Column({ name: 'position', type: 'int', default: 0 })
+  position!: number;
+
   @ManyToOne(() => SourceEvidence, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'evidence_id' })
   evidence!: SourceEvidence;
