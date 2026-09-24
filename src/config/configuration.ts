@@ -20,6 +20,14 @@ const envSchema = z.object({
   GROWTH_LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   GROWTH_LLM_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
   GROWTH_RUN_TOKEN_BUDGET: z.coerce.number().int().positive().default(20_000),
+
+  GROWTH_FETCH_MAX_REDIRECTS: z.coerce.number().int().min(0).max(10).default(5),
+  GROWTH_FETCH_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2_000_000),
+  GROWTH_FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
 });
 
 export type AppConfig = {
@@ -40,6 +48,11 @@ export type AppConfig = {
   };
   run: {
     tokenBudget: number;
+  };
+  fetch: {
+    maxRedirects: number;
+    maxBytes: number;
+    timeoutMs: number;
   };
 };
 
@@ -63,6 +76,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     },
     run: {
       tokenBudget: parsed.GROWTH_RUN_TOKEN_BUDGET,
+    },
+    fetch: {
+      maxRedirects: parsed.GROWTH_FETCH_MAX_REDIRECTS,
+      maxBytes: parsed.GROWTH_FETCH_MAX_BYTES,
+      timeoutMs: parsed.GROWTH_FETCH_TIMEOUT_MS,
     },
   };
 }

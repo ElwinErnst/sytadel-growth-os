@@ -7,6 +7,7 @@ import { EvidenceService } from '../modules/evidence/evidence.service';
 import { SignalService } from '../modules/signals/signal.service';
 import { BriefService } from '../modules/briefs/brief.service';
 import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
+import { FetchService } from '../modules/fetch/fetch.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import { RunStatus } from '../common/enums';
 import { toPageParams } from '../common/pagination';
@@ -28,6 +29,7 @@ Commands:
                  (--file <path> --source-url <url> --source-name <name> --retrieved-at <iso>
                   | --evidence <id> [<id> ...])
                  [--idempotency-key <key>] [--executor <id>]
+  fetch          --workspace <slug> --url <url> [--source-name <name>]
   workspace:list
   workspace:show --workspace <slug>
   evidence:list  --workspace <slug> [--limit <n>] [--offset <n>]
@@ -57,6 +59,7 @@ export class GrowthCli {
     private readonly signals: SignalService,
     private readonly briefs: BriefService,
     private readonly orchestrator: RunOrchestrator,
+    private readonly fetch: FetchService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -67,6 +70,8 @@ export class GrowthCli {
           return await this.ingest(args);
         case 'analyze':
           return await this.analyze(args);
+        case 'fetch':
+          return await this.fetchCmd(args);
         case 'workspace:list':
           return await this.workspaceList();
         case 'workspace:show':
@@ -139,6 +144,24 @@ export class GrowthCli {
 
     await this.printRunSummary(run);
     return run.status === RunStatus.COMPLETED ? 0 : 1;
+  }
+
+  private async fetchCmd(args: ParsedArgs): Promise<number> {
+    const slug = requireOne(args, 'workspace');
+    const url = requireOne(args, 'url');
+    const workspace = await this.workspaces.getOrCreate(slug);
+    const evidence = await this.fetch.fetchToEvidence(
+      workspace.id,
+      url,
+      getOne(args, 'source-name'),
+    );
+    console.log(`Fetched evidence: ${evidence.id}`);
+    console.log(`  final url: ${evidence.sourceUrl}`);
+    console.log(
+      `  bytes: ${evidence.contentBytes}   provenance: ${evidence.provenance}`,
+    );
+    console.log(`  retrieved-at: ${evidence.retrievedAt.toISOString()}`);
+    return 0;
   }
 
   private async workspaceList(): Promise<number> {

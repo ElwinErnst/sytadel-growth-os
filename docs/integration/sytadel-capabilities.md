@@ -77,12 +77,18 @@ the reference implementation of a **Sytadel Agent Control Plane**
 (Identity + Secrets + Policy + Audit + HITL + Billing) for customers deploying AI
 workers.
 
-## Web-fetch phase — required controls (documented, not built)
+## Web-fetch phase — controls (IMPLEMENTED in Slice 3a)
 
-The first fetch capability must ship with:
+The fetch capability shipped in Slice 3a (`src/modules/fetch/`) with:
 
-- An allowlist/denylist and **SSRF protection**: block private/link-local/metadata
-  ranges (RFC1918, `127.0.0.0/8`, `169.254.0.0/16`, `::1`, cloud metadata IPs).
-- **Redirect validation** on every hop (re-check the resolved IP; cap redirects).
-- DNS-rebinding mitigation (resolve then connect to the resolved IP).
-- Response size/time caps; content typed and stored as untrusted evidence.
+- Protocol allowlist (`http`/`https`) and **SSRF protection**: private,
+  loopback (`127.0.0.0/8`, `::1`), link-local/metadata (`169.254.0.0/16` incl.
+  `169.254.169.254`, `fe80::/10`), unique-local (`fc00::/7`), CGNAT
+  (`100.64.0.0/10`), multicast, unspecified, reserved — including IPv4-mapped v6.
+- **Redirect re-validation** on every hop, with a redirect cap.
+- **DNS-rebinding mitigation**: a custom DNS lookup validates the address and the
+  connection is pinned to that exact IP.
+- Response size/time caps; content stored as untrusted `fetched` evidence.
+
+Still local identity — the fetch runs under the local operator, not a Sytadel
+principal. Governing it (Slice 3c) is the next integration step below.

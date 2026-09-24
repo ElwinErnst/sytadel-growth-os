@@ -49,6 +49,11 @@ export enum ExecutorKind {
 export enum EvidenceProvenance {
   /** Supplied by the operator. We did NOT fetch or verify the source URL. */
   MANUAL = 'manual',
+  /**
+   * Fetched by Growth OS over HTTP(S) under SSRF controls. `sourceUrl` is the
+   * final URL actually retrieved and `retrievedAt` is the real fetch time.
+   */
+  FETCHED = 'fetched',
 }
 
 /**

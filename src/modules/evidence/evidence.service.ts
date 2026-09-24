@@ -9,10 +9,15 @@ import { sha256 } from '../../common/util/hash';
 export type IngestEvidenceInput = {
   workspaceId: string;
   sourceName: string;
-  /** DECLARED origin URL. We do NOT fetch or verify it in this slice. */
+  /**
+   * Origin URL. For MANUAL evidence this is operator-DECLARED and not verified.
+   * For FETCHED evidence this is the final URL actually retrieved.
+   */
   sourceUrl: string;
   retrievedAt: Date;
   content: string;
+  /** Defaults to MANUAL. FETCHED is set by the fetch flow. */
+  provenance?: EvidenceProvenance;
 };
 
 /**
@@ -53,7 +58,7 @@ export class EvidenceService {
       sourceName: input.sourceName.trim(),
       sourceUrl: input.sourceUrl.trim(),
       retrievedAt: input.retrievedAt,
-      provenance: EvidenceProvenance.MANUAL,
+      provenance: input.provenance ?? EvidenceProvenance.MANUAL,
       contentHash,
       content,
       contentBytes: Buffer.byteLength(content, 'utf8'),
