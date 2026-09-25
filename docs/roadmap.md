@@ -79,7 +79,9 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 |---|---|---|---|
 | **Core** | **1 ✅** | Manual evidence → signals → Founder Brief (CLI). *Shipped.* | None |
 | **Core** | **2 ✅** | Multi-evidence runs; workspace/evidence/run/signal/brief listing (paginated); expanded signal taxonomy; computed calibration summary in the brief. *Shipped.* | None |
-| **Research (autonomous)** | 3 | Web fetch with **SSRF controls** + redirect validation; read-only connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job posts, funding); scheduled research runs | Fetch → **Governance track begins** |
+| **Research (autonomous)** | **3a ✅** | Web fetch with **SSRF controls** (IP validation + connection pinning), manual redirect re-validation, size/time caps; fetched pages stored as `fetched` evidence. *Shipped.* | Fetch (read-only GET) |
+| Research | 3b | Read-only source connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job posts, funding); scheduled research runs | Fetch |
+| Research | 3c | **Governance**: agents as `auth-api` ServiceAccounts via `zerotrust-api`; new least-privilege scopes; Vault secrets; audit emission; HITL | Fetch → **Governance track** |
 | Research | 4 | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals | Fetch |
 | **ICP & Opportunity** | 5 | **ICP Agent**: refine ideal customer from signals + the concrete hypotheses above | None |
 | ICP | 6 | **Lead Generation + Account Research**: companies & contacts, each evidence-backed | Fetch |
@@ -148,6 +150,7 @@ companies deploying AI workers.
 
 ## Status
 
-- **Slices 1–2: shipped** (this repo). Next recommended: **Slice 3**, which
-  activates the Governance track (first external effect = web fetch, needs SSRF
-  controls). See `docs/next-slice-prompt.md`.
+- **Slices 1, 2, 3a: shipped** (this repo). Slice 3 is split: 3a (hardened web
+  fetch) done; **3b** (source connectors + scheduling) and **3c** (Governance —
+  the part that touches `auth-api` scopes) are next. See
+  `docs/next-slice-prompt.md`.

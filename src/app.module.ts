@@ -8,6 +8,7 @@ import { EvidenceModule } from './modules/evidence/evidence.module';
 import { SignalsModule } from './modules/signals/signals.module';
 import { BriefsModule } from './modules/briefs/briefs.module';
 import { RunsModule } from './modules/runs/runs.module';
+import { FetchModule } from './modules/fetch/fetch.module';
 import { GrowthCli } from './cli/growth-cli.service';
 
 /**
@@ -37,6 +38,7 @@ import { GrowthCli } from './cli/growth-cli.service';
     SignalsModule,
     BriefsModule,
     RunsModule,
+    FetchModule,
   ],
   providers: [GrowthCli],
 })

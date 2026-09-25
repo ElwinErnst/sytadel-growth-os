@@ -3,25 +3,43 @@
 Copy-paste to continue the build. Do discovery first; do not assume anything not
 verified in this repo or in `sytadel-suite`.
 
-> **Done:** Slice 1 (evidence → signals → Founder Brief) and Slice 2 (multi-
-> evidence, listing/query CLI, expanded taxonomy, calibration summary). See
-> `docs/mvp/`.
+> **Done:** Slice 1 (evidence → signals → Founder Brief), Slice 2 (multi-evidence,
+> listing/query CLI, expanded taxonomy, calibration summary), Slice 3a (hardened
+> web fetch with SSRF controls → `fetched` evidence). See `docs/mvp/`.
 
-## Recommended next: Slice 3 — Autonomous research + Governance begins
+## Recommended next: Slice 3b — Source connectors + scheduling
 
-This is the first slice with an external effect (web fetch), so it **activates the
-Governance track**. Before writing fetch code:
+> Build read-only source connectors on top of the Slice 3a fetcher (do NOT
+> bypass `HttpFetcher`/SSRF). Each connector turns a source into `fetched`
+> evidence with a clear source name and the real fetch time.
+>
+> 1. Connectors: changelogs, GitHub (releases/repos), Hacker News, Reddit,
+>    Product Hunt, pricing pages, job posts, funding news. Keep each connector
+>    small; normalize output to plain text evidence.
+> 2. A `research` run that fetches a configured set of sources for a workspace,
+>    dedups, and can feed straight into `analyze`.
+> 3. Scheduling: a way to run a research set on an interval (still no HTTP
+>    endpoints; a scheduler/cron entry or a documented external trigger).
+>
+> Constraints: all fetches go through the hardened fetcher; content is untrusted;
+> fixtures in tests/CI (no network in unit tests, local server for integration);
+> add migrations if the schema changes. Do not modify `sytadel-suite`.
 
-- Implement fetch behind an interface with **SSRF controls**: block
-  private/link-local/metadata IP ranges, validate every redirect hop (re-resolve
-  + connect to the resolved IP), cap redirects, cap response size/time, mitigate
-  DNS rebinding. Store fetched content as untrusted `SourceEvidence` with
-  `provenance = fetched` and the real fetch timestamp.
-- Start the **Governance integration** per `docs/integration/sytadel-capabilities.md`:
-  propose the new least-privilege scopes in `auth-api` (`research:read`,
-  `research:fetch`, …) as a **separate PR to `sytadel-suite`** (not from this repo
-  in a data slice), make each agent a `ServiceAccount`, route calls through
-  `zerotrust-api`, move connector secrets to Vault, and emit agent-action audit.
+## Then: Slice 3c — Governance (touches `auth-api`)
+
+This is the "en Slice 3 lo vemos" decision. It is the first change that touches
+`sytadel-suite`.
+
+- Propose new least-privilege scopes in `auth-api`
+  (`src/modules/integrations/api-scopes.ts`) — e.g. `research:read`,
+  `research:fetch` — as a **separate PR to `sytadel-suite`** (the allowlist is
+  closed; unknown scopes are rejected at key creation).
+- Make each agent role an `auth-api` `ServiceAccount`; route calls through
+  `zerotrust-api`; move connector/provider secrets to Vault; emit agent-action
+  audit to the suite's unified timeline; add HITL for any sensitive action.
+- Only after this does the local executor identity get replaced by a
+  Sytadel-authenticated principal (add a `sytadel_subject` field; never conflate
+  it with `executor_id`).
 
 ## Guardrail reminders (all slices)
 

@@ -4,10 +4,11 @@ Private market-research and growth workbench for Sytadel. It turns
 operator-supplied evidence into structured signals and an evidence-backed
 **Founder Brief**, so the human decides strategy from facts — not vibes.
 
-> **Status: Slice 2 (core hardening).** CLI-only. Core workflow (manual evidence
-> → market signals → Founder Brief) plus multi-evidence runs, workspace/run/brief
-> listing, and a computed calibration summary in the brief. No web fetching, no
-> HTTP data endpoints, no outbound messaging. See
+> **Status: Slice 3a (hardened web fetch).** CLI-only. Core workflow (manual
+> evidence → market signals → Founder Brief), multi-evidence runs, listing/query
+> commands, calibration summary — plus **read-only web fetch under SSRF controls**
+> (`fetch` command) that stores retrieved pages as `fetched` evidence. Still no
+> HTTP data endpoints, no outbound messaging, no Sytadel-governed identity. See
 > [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
 
 This is a **separate, private repository**. It is not a Sytadel submodule and is
@@ -91,6 +92,7 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 |---|---|
 | `ingest` | Persist one piece of evidence (dedup per workspace). |
 | `analyze` | Ingest (or reference) evidence, then run the full workflow to a brief. |
+| `fetch --workspace <slug> --url <url>` | Fetch a URL under SSRF controls and store it as `fetched` evidence. |
 | `workspace:list` | List all workspaces. |
 | `workspace:show --workspace <slug>` | Show a workspace with evidence/run/signal/brief counts. |
 | `evidence:list --workspace <slug>` | List a workspace's evidence (paginated). |
@@ -129,11 +131,30 @@ npm test           # needs a migrated Postgres; uses the fixture provider, no ke
 Tests never call a real model. See [`docs/mvp/slice-1-founder-brief.md`](docs/mvp/slice-1-founder-brief.md)
 for the MVP spec and verification checklist.
 
-## Not in Slice 1 (documented next steps)
+## Web fetch safety (Slice 3a)
 
-Web fetching / URL download (with SSRF controls + redirect validation),
-scheduling, HTTP data endpoints, Sytadel-governed agent identity, and any action
-with an external effect. See [`docs/roadmap.md`](docs/roadmap.md) and
+`fetch` performs a read-only HTTP(S) GET and stores the result as untrusted
+`fetched` evidence. It is hardened against SSRF:
+
+- Only `http`/`https`; every destination IP is validated at connect time and the
+  connection is **pinned to the validated IP** (closes the DNS-rebinding window).
+- Private, loopback, link-local, unique-local, CGNAT, multicast, unspecified, and
+  cloud-metadata (`169.254.169.254`) ranges are always blocked — including
+  IPv4-mapped IPv6.
+- Redirects are followed manually and **each hop is re-validated**, capped by
+  `GROWTH_FETCH_MAX_REDIRECTS`.
+- Response size and total time are bounded (`GROWTH_FETCH_MAX_BYTES`,
+  `GROWTH_FETCH_TIMEOUT_MS`).
+
+Fetched content is data, never instructions — it flows through the same untrusted
+handling as manual evidence.
+
+## Not yet (documented next steps)
+
+Source connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job
+posts, funding), scheduling, HTTP data endpoints, and **Sytadel-governed agent
+identity** (Slice 3c — needs new scopes in `auth-api`). No outbound messaging or
+any send/publish/spend. See [`docs/roadmap.md`](docs/roadmap.md) and
 [`docs/next-slice-prompt.md`](docs/next-slice-prompt.md).
 
 ## License
