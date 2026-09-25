@@ -80,7 +80,8 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 | **Core** | **1 ✅** | Manual evidence → signals → Founder Brief (CLI). *Shipped.* | None |
 | **Core** | **2 ✅** | Multi-evidence runs; workspace/evidence/run/signal/brief listing (paginated); expanded signal taxonomy; computed calibration summary in the brief. *Shipped.* | None |
 | **Research (autonomous)** | **3a ✅** | Web fetch with **SSRF controls** (IP validation + connection pinning), manual redirect re-validation, size/time caps; fetched pages stored as `fetched` evidence. *Shipped.* | Fetch (read-only GET) |
-| Research | 3b | Read-only source connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job posts, funding); scheduled research runs | Fetch |
+| Research | **3b-1 ✅** | Connector framework + generic `web_page` connector (HTML→text); per-workspace research source registry; resilient `research` run → `fetched` evidence; cron-friendly scheduling. *Shipped.* | Fetch |
+| Research | 3b-2 | Typed connectors (Hacker News, GitHub, Reddit, Product Hunt, …) on the same connector contract | Fetch |
 | Research | 3c | **Governance**: agents as `auth-api` ServiceAccounts via `zerotrust-api`; new least-privilege scopes; Vault secrets; audit emission; HITL | Fetch → **Governance track** |
 | Research | 4 | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals | Fetch |
 | **ICP & Opportunity** | 5 | **ICP Agent**: refine ideal customer from signals + the concrete hypotheses above | None |
@@ -150,7 +151,6 @@ companies deploying AI workers.
 
 ## Status
 
-- **Slices 1, 2, 3a: shipped** (this repo). Slice 3 is split: 3a (hardened web
-  fetch) done; **3b** (source connectors + scheduling) and **3c** (Governance —
-  the part that touches `auth-api` scopes) are next. See
-  `docs/next-slice-prompt.md`.
+- **Slices 1, 2, 3a, 3b-1: shipped** (this repo). Next: **3b-2** (typed
+  connectors) and **3c** (Governance — the part that touches `auth-api` scopes).
+  See `docs/next-slice-prompt.md`.

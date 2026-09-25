@@ -45,6 +45,16 @@ export enum ExecutorKind {
   LOCAL = 'local',
 }
 
+/**
+ * Kind of a configured research source. Drives which connector collects it.
+ * `web_page` (generic fetch + HTML→text) is the only kind implemented in this
+ * slice; typed connectors (Hacker News, GitHub, …) are future kinds that follow
+ * the same connector contract.
+ */
+export enum SourceKind {
+  WEB_PAGE = 'web_page',
+}
+
 /** How a piece of evidence entered the system. */
 export enum EvidenceProvenance {
   /** Supplied by the operator. We did NOT fetch or verify the source URL. */

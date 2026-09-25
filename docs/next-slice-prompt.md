@@ -4,26 +4,25 @@ Copy-paste to continue the build. Do discovery first; do not assume anything not
 verified in this repo or in `sytadel-suite`.
 
 > **Done:** Slice 1 (evidence → signals → Founder Brief), Slice 2 (multi-evidence,
-> listing/query CLI, expanded taxonomy, calibration summary), Slice 3a (hardened
-> web fetch with SSRF controls → `fetched` evidence). See `docs/mvp/`.
+> listing/query CLI, expanded taxonomy, calibration), Slice 3a (hardened web fetch
+> with SSRF controls → `fetched` evidence), Slice 3b-1 (connector framework +
+> generic `web_page` connector, research source registry, resilient `research`
+> run, cron scheduling). See `docs/mvp/`.
 
-## Recommended next: Slice 3b — Source connectors + scheduling
+## Recommended next: Slice 3b-2 — Typed connectors
 
-> Build read-only source connectors on top of the Slice 3a fetcher (do NOT
-> bypass `HttpFetcher`/SSRF). Each connector turns a source into `fetched`
-> evidence with a clear source name and the real fetch time.
+> Add typed connectors on the existing contract
+> (`src/modules/research/connectors/connector.ts`), one per PR-sized batch. Each
+> MUST fetch through the injected `HttpFetcher` (never bypass SSRF) and normalize
+> to plain-text evidence.
 >
-> 1. Connectors: changelogs, GitHub (releases/repos), Hacker News, Reddit,
->    Product Hunt, pricing pages, job posts, funding news. Keep each connector
->    small; normalize output to plain text evidence.
-> 2. A `research` run that fetches a configured set of sources for a workspace,
->    dedups, and can feed straight into `analyze`.
-> 3. Scheduling: a way to run a research set on an interval (still no HTTP
->    endpoints; a scheduler/cron entry or a documented external trigger).
+> Good first targets (public, no key needed): **Hacker News** (Algolia search
+> API — JSON), then **GitHub** releases/repos (REST, unauthenticated for public
+> data). Reddit / Product Hunt need keys → defer or gate behind Vault (3c).
 >
-> Constraints: all fetches go through the hardened fetcher; content is untrusted;
-> fixtures in tests/CI (no network in unit tests, local server for integration);
-> add migrations if the schema changes. Do not modify `sytadel-suite`.
+> For each: add a `SourceKind`, implement `Connector`, register it in
+> `ResearchService`'s connector map, and add integration tests with a local
+> server returning canned JSON (no real network in CI).
 
 ## Then: Slice 3c — Governance (touches `auth-api`)
 

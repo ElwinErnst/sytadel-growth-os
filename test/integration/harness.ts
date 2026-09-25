@@ -12,6 +12,8 @@ import { EvidenceService } from '../../src/modules/evidence/evidence.service';
 import { SignalService } from '../../src/modules/signals/signal.service';
 import { BriefService } from '../../src/modules/briefs/brief.service';
 import { RunOrchestrator } from '../../src/modules/runs/run-orchestrator.service';
+import { ResearchService } from '../../src/modules/research/research.service';
+import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
 
 export type TestApp = {
   app: TestingModule;
@@ -21,6 +23,7 @@ export type TestApp = {
   signals: SignalService;
   briefs: BriefService;
   orchestrator: RunOrchestrator;
+  research: ResearchService;
   close: () => Promise<void>;
 };
 
@@ -28,11 +31,19 @@ export type TestApp = {
  * Boot the real application context against the (migrated) test Postgres, with
  * the LLM provider swapped for a scripted fixture. No network, no real key.
  */
-export async function createTestApp(script?: FixtureScript): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+export async function createTestApp(
+  script?: FixtureScript,
+  fetcher?: HttpFetcher,
+): Promise<TestApp> {
+  let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(LLM_PROVIDER)
-    .useValue(new FixtureProvider('fixture-model', script))
-    .compile();
+    .useValue(new FixtureProvider('fixture-model', script));
+  if (fetcher) {
+    // Swap the hardened fetcher for a loopback-allowing one so research/fetch
+    // tests can hit a local server. Production always uses allowLoopback:false.
+    builder = builder.overrideProvider(HttpFetcher).useValue(fetcher);
+  }
+  const moduleRef = await builder.compile();
 
   const app = await moduleRef.init();
 
@@ -44,6 +55,7 @@ export async function createTestApp(script?: FixtureScript): Promise<TestApp> {
     signals: app.get(SignalService),
     briefs: app.get(BriefService),
     orchestrator: app.get(RunOrchestrator),
+    research: app.get(ResearchService),
     close: () => app.close(),
   };
 }

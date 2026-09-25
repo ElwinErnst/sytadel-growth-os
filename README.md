@@ -4,12 +4,13 @@ Private market-research and growth workbench for Sytadel. It turns
 operator-supplied evidence into structured signals and an evidence-backed
 **Founder Brief**, so the human decides strategy from facts — not vibes.
 
-> **Status: Slice 3a (hardened web fetch).** CLI-only. Core workflow (manual
-> evidence → market signals → Founder Brief), multi-evidence runs, listing/query
-> commands, calibration summary — plus **read-only web fetch under SSRF controls**
-> (`fetch` command) that stores retrieved pages as `fetched` evidence. Still no
-> HTTP data endpoints, no outbound messaging, no Sytadel-governed identity. See
-> [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
+> **Status: Slice 3b-1 (source connectors).** CLI-only. Core workflow (manual
+> evidence → market signals → Founder Brief), multi-evidence runs, listing/query,
+> calibration; **read-only web fetch under SSRF controls**; and a **research
+> source registry** with a resilient `research` run that collects configured
+> sources (generic `web_page` connector, HTML→text) into `fetched` evidence.
+> Still no HTTP data endpoints, no outbound messaging, no Sytadel-governed
+> identity. See [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
 
 This is a **separate, private repository**. It is not a Sytadel submodule and is
 not part of the Sytadel Compose stack. It integrates with Sytadel only through
@@ -93,6 +94,9 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 | `ingest` | Persist one piece of evidence (dedup per workspace). |
 | `analyze` | Ingest (or reference) evidence, then run the full workflow to a brief. |
 | `fetch --workspace <slug> --url <url>` | Fetch a URL under SSRF controls and store it as `fetched` evidence. |
+| `source:add --workspace <slug> --url <url>` | Register a research source (validated at add time). |
+| `source:list --workspace <slug>` | List a workspace's research sources. |
+| `research --workspace <slug>` | Collect every enabled source into `fetched` evidence (per-source resilient). |
 | `workspace:list` | List all workspaces. |
 | `workspace:show --workspace <slug>` | Show a workspace with evidence/run/signal/brief counts. |
 | `evidence:list --workspace <slug>` | List a workspace's evidence (paginated). |
@@ -149,12 +153,36 @@ for the MVP spec and verification checklist.
 Fetched content is data, never instructions — it flows through the same untrusted
 handling as manual evidence.
 
+## Research sources & scheduling (Slice 3b-1)
+
+Register sources per workspace, then collect them into evidence:
+
+```bash
+npm run growth -- source:add --workspace sytadel --url https://competitor.com/changelog --label "Competitor changelog"
+npm run growth -- source:list --workspace sytadel
+npm run growth -- research --workspace sytadel        # collects all enabled sources
+npm run growth -- analyze  --workspace sytadel --evidence <id> [<id> ...]
+```
+
+- Every source is collected through the **hardened fetcher** — SSRF controls
+  always apply. The generic `web_page` connector normalizes HTML to text.
+- A `research` run is **resilient**: one source failing (blocked, timeout, empty)
+  is recorded in the per-source outcome and the batch continues. Content dedups
+  by hash, so re-running is safe.
+
+**Scheduling** is external and cron-friendly (no long-running server): schedule
+the CLI, e.g.
+
+```cron
+0 * * * * cd /path/to/sytadel-growth-os && GROWTH_LLM_PROVIDER=fixture npm run growth -- research --workspace sytadel >> research.log 2>&1
+```
+
 ## Not yet (documented next steps)
 
-Source connectors (changelogs, GitHub, HN, Reddit, Product Hunt, pricing, job
-posts, funding), scheduling, HTTP data endpoints, and **Sytadel-governed agent
-identity** (Slice 3c — needs new scopes in `auth-api`). No outbound messaging or
-any send/publish/spend. See [`docs/roadmap.md`](docs/roadmap.md) and
+More typed connectors (Hacker News, GitHub, Reddit, Product Hunt — Slice 3b-2),
+HTTP data endpoints, and **Sytadel-governed agent identity** (Slice 3c — needs
+new scopes in `auth-api`). No outbound messaging or any send/publish/spend. See
+[`docs/roadmap.md`](docs/roadmap.md) and
 [`docs/next-slice-prompt.md`](docs/next-slice-prompt.md).
 
 ## License
