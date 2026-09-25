@@ -28,6 +28,6 @@ import { FetchService } from './fetch.service';
     },
     FetchService,
   ],
-  exports: [FetchService],
+  exports: [FetchService, HttpFetcher],
 })
 export class FetchModule {}

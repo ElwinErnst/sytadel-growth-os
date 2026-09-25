@@ -8,6 +8,7 @@ import { SignalService } from '../modules/signals/signal.service';
 import { BriefService } from '../modules/briefs/brief.service';
 import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
 import { FetchService } from '../modules/fetch/fetch.service';
+import { ResearchService } from '../modules/research/research.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import { RunStatus } from '../common/enums';
 import { toPageParams } from '../common/pagination';
@@ -30,6 +31,9 @@ Commands:
                   | --evidence <id> [<id> ...])
                  [--idempotency-key <key>] [--executor <id>]
   fetch          --workspace <slug> --url <url> [--source-name <name>]
+  source:add     --workspace <slug> --url <url> [--label <name>]
+  source:list    --workspace <slug>
+  research       --workspace <slug> [--source <id> ...]
   workspace:list
   workspace:show --workspace <slug>
   evidence:list  --workspace <slug> [--limit <n>] [--offset <n>]
@@ -60,6 +64,7 @@ export class GrowthCli {
     private readonly briefs: BriefService,
     private readonly orchestrator: RunOrchestrator,
     private readonly fetch: FetchService,
+    private readonly research: ResearchService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -72,6 +77,12 @@ export class GrowthCli {
           return await this.analyze(args);
         case 'fetch':
           return await this.fetchCmd(args);
+        case 'source:add':
+          return await this.sourceAdd(args);
+        case 'source:list':
+          return await this.sourceList(args);
+        case 'research':
+          return await this.researchCmd(args);
         case 'workspace:list':
           return await this.workspaceList();
         case 'workspace:show':
@@ -162,6 +173,54 @@ export class GrowthCli {
     );
     console.log(`  retrieved-at: ${evidence.retrievedAt.toISOString()}`);
     return 0;
+  }
+
+  private async sourceAdd(args: ParsedArgs): Promise<number> {
+    const slug = requireOne(args, 'workspace');
+    const url = requireOne(args, 'url');
+    const workspace = await this.workspaces.getOrCreate(slug);
+    const source = await this.research.addSource(
+      workspace.id,
+      url,
+      getOne(args, 'label'),
+    );
+    console.log(`Source registered: ${source.id}`);
+    console.log(`  ${source.kind}\t${source.url}\t"${source.label}"`);
+    return 0;
+  }
+
+  private async sourceList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const rows = await this.research.listSources(ws.id);
+    console.log(`Sources in ${ws.slug} (${rows.length}):`);
+    for (const s of rows) {
+      const flag = s.enabled ? 'on ' : 'off';
+      console.log(`  ${flag}\t${s.kind}\t${s.id}\t${s.url}\t"${s.label}"`);
+    }
+    return 0;
+  }
+
+  private async researchCmd(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const sourceIds = getMany(args, 'source');
+    const result = await this.research.run(
+      ws.id,
+      sourceIds.length > 0 ? sourceIds : undefined,
+    );
+    console.log(
+      `Research run in ${ws.slug}: ${result.stored} stored, ${result.failed} failed`,
+    );
+    for (const o of result.outcomes) {
+      if (o.ok) {
+        console.log(`  ok\t${o.label}\t-> ${o.evidenceIds.join(', ')}`);
+      } else {
+        console.log(`  FAIL\t${o.label}\t${o.error ?? ''}`);
+      }
+    }
+    // Non-zero exit only if everything failed; partial success is still success.
+    return result.outcomes.length > 0 && result.stored === 0 ? 1 : 0;
   }
 
   private async workspaceList(): Promise<number> {
