@@ -71,6 +71,21 @@ describe('Research connectors + run (integration)', () => {
     ).rejects.toBeInstanceOf(SsrfBlockedError);
   });
 
+  it('persists a typed source kind', async () => {
+    const ws = await t.workspaces.getOrCreate(uniqueSlug());
+    const s = await t.research.addSource(
+      ws.id,
+      'https://hn.algolia.com/api/v1/search?query=agent%20identity&tags=story',
+      'HN agent identity',
+      SourceKind.HACKER_NEWS,
+    );
+    expect(s.kind).toBe(SourceKind.HACKER_NEWS);
+    const listed = await t.research.listSources(ws.id);
+    expect(listed.find((x) => x.id === s.id)?.kind).toBe(
+      SourceKind.HACKER_NEWS,
+    );
+  });
+
   it('runs a web_page source into normalized fetched evidence', async () => {
     const ws = await t.workspaces.getOrCreate(uniqueSlug());
     await addLoopbackSource(ws.id, '/page');

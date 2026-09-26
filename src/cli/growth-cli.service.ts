@@ -10,7 +10,7 @@ import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
 import { FetchService } from '../modules/fetch/fetch.service';
 import { ResearchService } from '../modules/research/research.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
-import { RunStatus } from '../common/enums';
+import { RunStatus, SourceKind } from '../common/enums';
 import { toPageParams } from '../common/pagination';
 import {
   CliUsageError,
@@ -32,6 +32,7 @@ Commands:
                  [--idempotency-key <key>] [--executor <id>]
   fetch          --workspace <slug> --url <url> [--source-name <name>]
   source:add     --workspace <slug> --url <url> [--label <name>]
+                 [--kind web_page|hacker_news|github_releases]
   source:list    --workspace <slug>
   research       --workspace <slug> [--source <id> ...]
   workspace:list
@@ -178,11 +179,20 @@ export class GrowthCli {
   private async sourceAdd(args: ParsedArgs): Promise<number> {
     const slug = requireOne(args, 'workspace');
     const url = requireOne(args, 'url');
+    const kindRaw = getOne(args, 'kind');
+    const kind = this.parseKind(kindRaw);
+    if (kindRaw !== undefined && kind === undefined) {
+      console.error(
+        `Invalid --kind "${kindRaw}". Use one of: ${Object.values(SourceKind).join(', ')}`,
+      );
+      return 2;
+    }
     const workspace = await this.workspaces.getOrCreate(slug);
     const source = await this.research.addSource(
       workspace.id,
       url,
       getOne(args, 'label'),
+      kind,
     );
     console.log(`Source registered: ${source.id}`);
     console.log(`  ${source.kind}\t${source.url}\t"${source.label}"`);
@@ -371,6 +381,13 @@ export class GrowthCli {
     if (raw === undefined) return undefined;
     return (Object.values(RunStatus) as string[]).includes(raw)
       ? (raw as RunStatus)
+      : undefined;
+  }
+
+  private parseKind(raw: string | undefined): SourceKind | undefined {
+    if (raw === undefined) return undefined;
+    return (Object.values(SourceKind) as string[]).includes(raw)
+      ? (raw as SourceKind)
       : undefined;
   }
 

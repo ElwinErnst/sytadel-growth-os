@@ -4,13 +4,14 @@ Private market-research and growth workbench for Sytadel. It turns
 operator-supplied evidence into structured signals and an evidence-backed
 **Founder Brief**, so the human decides strategy from facts — not vibes.
 
-> **Status: Slice 3b-1 (source connectors).** CLI-only. Core workflow (manual
+> **Status: Slice 3b-2 (typed connectors).** CLI-only. Core workflow (manual
 > evidence → market signals → Founder Brief), multi-evidence runs, listing/query,
 > calibration; **read-only web fetch under SSRF controls**; and a **research
-> source registry** with a resilient `research` run that collects configured
-> sources (generic `web_page` connector, HTML→text) into `fetched` evidence.
-> Still no HTTP data endpoints, no outbound messaging, no Sytadel-governed
-> identity. See [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
+> source registry** with a resilient `research` run. Connectors: generic
+> `web_page` (HTML→text), **`hacker_news`** (Algolia API), **`github_releases`**
+> (public REST) — all keyless, all through the hardened fetcher. Still no HTTP
+> data endpoints, no outbound messaging, no Sytadel-governed identity. See
+> [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
 
 This is a **separate, private repository**. It is not a Sytadel submodule and is
 not part of the Sytadel Compose stack. It integrates with Sytadel only through
@@ -158,14 +159,23 @@ handling as manual evidence.
 Register sources per workspace, then collect them into evidence:
 
 ```bash
+# generic web page (HTML → text)
 npm run growth -- source:add --workspace sytadel --url https://competitor.com/changelog --label "Competitor changelog"
+# Hacker News (Algolia search API — the URL IS the source of truth)
+npm run growth -- source:add --workspace sytadel --kind hacker_news \
+  --url "https://hn.algolia.com/api/v1/search?query=agent%20identity&tags=story" --label "HN: agent identity"
+# GitHub releases (public REST)
+npm run growth -- source:add --workspace sytadel --kind github_releases \
+  --url https://api.github.com/repos/openai/openai-node/releases --label "openai-node releases"
+
 npm run growth -- source:list --workspace sytadel
 npm run growth -- research --workspace sytadel        # collects all enabled sources
 npm run growth -- analyze  --workspace sytadel --evidence <id> [<id> ...]
 ```
 
 - Every source is collected through the **hardened fetcher** — SSRF controls
-  always apply. The generic `web_page` connector normalizes HTML to text.
+  always apply. Connectors normalize to plain-text evidence: `web_page`
+  (HTML→text), `hacker_news` and `github_releases` (JSON → readable digest).
 - A `research` run is **resilient**: one source failing (blocked, timeout, empty)
   is recorded in the per-source outcome and the batch continues. Content dedups
   by hash, so re-running is safe.
@@ -179,10 +189,10 @@ the CLI, e.g.
 
 ## Not yet (documented next steps)
 
-More typed connectors (Hacker News, GitHub, Reddit, Product Hunt — Slice 3b-2),
-HTTP data endpoints, and **Sytadel-governed agent identity** (Slice 3c — needs
-new scopes in `auth-api`). No outbound messaging or any send/publish/spend. See
-[`docs/roadmap.md`](docs/roadmap.md) and
+Connectors needing API keys (Reddit, Product Hunt) — deferred until secrets live
+in Vault; HTTP data endpoints; and **Sytadel-governed agent identity** (Slice 3c
+— needs new scopes in `auth-api`). No outbound messaging or any send/publish/
+spend. See [`docs/roadmap.md`](docs/roadmap.md) and
 [`docs/next-slice-prompt.md`](docs/next-slice-prompt.md).
 
 ## License
