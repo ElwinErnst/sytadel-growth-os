@@ -8,6 +8,8 @@ import { SsrfBlockedError, validateFetchUrl } from '../fetch/ssrf';
 import { FetchError } from '../fetch/http-fetcher';
 import { Connector, ConnectorError } from './connectors/connector';
 import { WebPageConnector } from './connectors/web-page.connector';
+import { HackerNewsConnector } from './connectors/hacker-news.connector';
+import { GitHubReleasesConnector } from './connectors/github-releases.connector';
 
 /** Per-source result of a research run. */
 export type SourceOutcome = {
@@ -41,8 +43,14 @@ export class ResearchService {
     private readonly sources: Repository<ResearchSource>,
     private readonly evidence: EvidenceService,
     webPage: WebPageConnector,
+    hackerNews: HackerNewsConnector,
+    githubReleases: GitHubReleasesConnector,
   ) {
-    this.connectors = new Map([[webPage.kind, webPage]]);
+    this.connectors = new Map<SourceKind, Connector>([
+      [webPage.kind, webPage],
+      [hackerNews.kind, hackerNews],
+      [githubReleases.kind, githubReleases],
+    ]);
   }
 
   // --- registry ------------------------------------------------------------

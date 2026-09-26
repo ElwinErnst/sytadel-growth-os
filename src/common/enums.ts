@@ -53,6 +53,10 @@ export enum ExecutorKind {
  */
 export enum SourceKind {
   WEB_PAGE = 'web_page',
+  /** Hacker News via the public Algolia search API (source url = the API URL). */
+  HACKER_NEWS = 'hacker_news',
+  /** GitHub releases via the public REST API (source url = the releases URL). */
+  GITHUB_RELEASES = 'github_releases',
 }
 
 /** How a piece of evidence entered the system. */
