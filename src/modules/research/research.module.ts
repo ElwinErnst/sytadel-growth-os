@@ -7,12 +7,14 @@ import { HackerNewsConnector } from './connectors/hacker-news.connector';
 import { GitHubReleasesConnector } from './connectors/github-releases.connector';
 import { EvidenceModule } from '../evidence/evidence.module';
 import { FetchModule } from '../fetch/fetch.module';
+import { IdentityModule } from '../identity/identity.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ResearchSource]),
     EvidenceModule,
     FetchModule,
+    IdentityModule,
   ],
   providers: [
     ResearchService,

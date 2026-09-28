@@ -4,6 +4,8 @@ import { In, QueryFailedError, Repository } from 'typeorm';
 import { ResearchSource } from './entities/research-source.entity';
 import { EvidenceProvenance, SourceKind } from '../../common/enums';
 import { EvidenceService } from '../evidence/evidence.service';
+import { SytadelIdentityService } from '../identity/sytadel-identity.service';
+import { SYTADEL_SCOPES } from '../identity/scopes';
 import { SsrfBlockedError, validateFetchUrl } from '../fetch/ssrf';
 import { FetchError } from '../fetch/http-fetcher';
 import { Connector, ConnectorError } from './connectors/connector';
@@ -42,6 +44,7 @@ export class ResearchService {
     @InjectRepository(ResearchSource)
     private readonly sources: Repository<ResearchSource>,
     private readonly evidence: EvidenceService,
+    private readonly identity: SytadelIdentityService,
     webPage: WebPageConnector,
     hackerNews: HackerNewsConnector,
     githubReleases: GitHubReleasesConnector,
@@ -103,6 +106,11 @@ export class ResearchService {
     workspaceId: string,
     sourceIds?: string[],
   ): Promise<ResearchRunResult> {
+    // A research run performs outbound fetches → requires research:fetch when
+    // Sytadel auth is on. Enforced once, before the loop, so an authz failure
+    // fails the whole run (it is NOT swallowed by per-source resilience).
+    await this.identity.requireScope(SYTADEL_SCOPES.RESEARCH_FETCH);
+
     const where =
       sourceIds && sourceIds.length > 0
         ? { workspaceId, enabled: true, id: In(sourceIds) }

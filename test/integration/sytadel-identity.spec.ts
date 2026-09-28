@@ -2,9 +2,11 @@ import http from 'node:http';
 import { AddressInfo } from 'node:net';
 import { AppConfig } from '../../src/config/configuration';
 import {
+  ScopeDeniedError,
   SytadelAuthError,
   SytadelIdentityService,
 } from '../../src/modules/identity/sytadel-identity.service';
+import { SYTADEL_SCOPES } from '../../src/modules/identity/scopes';
 
 type SytadelCfg = AppConfig['sytadel'];
 
@@ -19,7 +21,7 @@ const validToken = {
     tenantId: 't-1',
     clientAppId: 'app-1',
     environmentId: null,
-    scopes: ['payments:read'],
+    scopes: ['research:read'],
   },
 };
 
@@ -95,7 +97,7 @@ describe('SytadelIdentityService (integration, fixture auth server)', () => {
       tenantSlug: 'acme',
       serviceAccountId: 'sa-1',
       clientAppId: 'app-1',
-      scopes: ['payments:read'],
+      scopes: ['research:read'],
     });
     // Sent the expected credential body.
     expect(lastBody.serviceAccountId).toBe('sa-1');
@@ -122,5 +124,25 @@ describe('SytadelIdentityService (integration, fixture auth server)', () => {
   it('errors when enabled but not fully configured', async () => {
     const svc = new SytadelIdentityService(cfg({ clientSecret: null }));
     await expect(svc.getPrincipal()).rejects.toBeInstanceOf(SytadelAuthError);
+  });
+
+  describe('requireScope', () => {
+    it('returns the principal when it holds the scope (SA has research:read)', async () => {
+      const svc = new SytadelIdentityService(cfg());
+      const principal = await svc.requireScope(SYTADEL_SCOPES.RESEARCH_READ);
+      expect(principal?.serviceAccountId).toBe('sa-1');
+    });
+
+    it('throws ScopeDeniedError when the scope is missing', async () => {
+      const svc = new SytadelIdentityService(cfg());
+      await expect(
+        svc.requireScope(SYTADEL_SCOPES.RESEARCH_FETCH),
+      ).rejects.toBeInstanceOf(ScopeDeniedError);
+    });
+
+    it('is a no-op returning null when disabled', async () => {
+      const svc = new SytadelIdentityService(cfg({ enabled: false }));
+      expect(await svc.requireScope(SYTADEL_SCOPES.RESEARCH_FETCH)).toBeNull();
+    });
   });
 });

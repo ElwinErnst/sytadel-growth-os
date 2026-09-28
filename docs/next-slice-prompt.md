@@ -7,8 +7,9 @@ verified in this repo or in `sytadel-suite`.
 > listing/query CLI, taxonomy, calibration), Slice 3a (hardened web fetch, SSRF),
 > Slice 3b-1 (connector framework + `web_page`, research registry, resilient
 > `research` run, cron), Slice 3b-2 (typed connectors: `hacker_news`,
-> `github_releases`), Slice 3c-1 (opt-in Sytadel identity client — authenticate as
-> a ServiceAccount, record `sytadel_subject`, feature-flagged, no suite changes).
+> `github_releases`), Slice 3c-1 (opt-in Sytadel identity client), Slice 3c-2
+> Growth-OS side (scope enforcement: `research:read` for analyze, `research:fetch`
+> for fetch/research, via `requireScope` — the local-identity path is unchanged).
 > See `docs/mvp/`.
 
 ## Slice 3c — Governance: DESIGNED (see ADR 0002)
@@ -16,26 +17,26 @@ verified in this repo or in `sytadel-suite`.
 The full governance architecture is fixed in
 [`docs/adr/0002-governance.md`](adr/0002-governance.md), grounded in the verified
 `auth-api` service-account token contract. Increments: **3c-1 identity ✅** ·
-3c-2 scopes · 3c-3 Vault · 3c-4 audit · 3c-5 HITL. No `sytadel-suite` PR is opened
-without confirming scope first.
+**3c-2 scope enforcement ✅ (Growth-OS side)** · 3c-3 Vault · 3c-4 audit · 3c-5
+HITL. No `sytadel-suite` PR is opened without confirming scope first.
 
-## Recommended next: Slice 3c-2 — `research:*` scopes (FIRST `sytadel-suite` PR)
+## Recommended next: Slice 3c-2 (suite side) — add `research:*` scopes to auth-api
 
-> ⚠️ This is the first change that touches `sytadel-suite`. **Confirm scope with
-> the operator before opening the suite PR** (per ADR 0001 / ADR 0002).
+> ⚠️ FIRST change that touches `sytadel-suite`. Scope already confirmed with the
+> operator: add **`research:read`, `research:fetch`, `leads:read`**;
+> **one ServiceAccount per agent role** (research / sales / content). Re-confirm
+> before opening if anything changed.
 >
 > 1. In `sytadel-suite` → `auth/auth-api/src/modules/integrations/api-scopes.ts`,
->    add `research:read` and `research:fetch` to the closed `API_SCOPES` allowlist
->    (unknown scopes are rejected at key creation, so they must exist before a
->    ServiceAccount can hold them). Add/extend allowlist tests. Open as a
->    **separate PR in `sytadel-suite`** (submodule `auth-api`), following its
->    conventions (code-only; no migration).
-> 2. In Growth OS: `SytadelIdentityService` already parses the granted scopes; add
->    a capability check so research actions assert the principal holds
->    `research:fetch` when Sytadel auth is enabled. The local-identity path stays
->    unchanged, and existing local guards are NOT bypassed.
-> 3. Tests: scope-present vs scope-absent via the identity stub; flag-off path
->    unchanged.
+>    add `research:read`, `research:fetch`, `leads:read` to the closed
+>    `API_SCOPES` allowlist (unknown scopes are rejected at key creation).
+>    Add/extend allowlist tests. Open as a **separate PR in `sytadel-suite`**
+>    (submodule `auth-api`), following its conventions (code-only; no migration).
+> 2. Provision one ServiceAccount per agent role with least-privilege scopes, and
+>    enable the `apiAuth` entitlement on the tenant Growth OS runs under.
+> 3. Growth OS already enforces the scopes (Slice 3c-2, this repo) — no code
+>    change needed there once the grants exist; just fill the `GROWTH_SYTADEL_*`
+>    credentials and set `GROWTH_SYTADEL_AUTH=true`.
 
 ## Then (each its own slice, suite-touching — confirm scope first)
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { AppConfig } from '../../config/configuration';
+import { SytadelScope } from './scopes';
 
 /** The authenticated Sytadel principal, read from the token response. */
 export type SytadelPrincipal = {
@@ -16,6 +17,14 @@ export class SytadelAuthError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'SytadelAuthError';
+  }
+}
+
+/** Raised when the authenticated principal lacks a required scope. */
+export class ScopeDeniedError extends Error {
+  constructor(scope: string) {
+    super(`Sytadel principal lacks required scope "${scope}"`);
+    this.name = 'ScopeDeniedError';
   }
 }
 
@@ -57,6 +66,22 @@ export class SytadelIdentityService {
   async getPrincipal(): Promise<SytadelPrincipal | null> {
     if (!this.cfg.enabled) return null;
     return this.authenticate();
+  }
+
+  /**
+   * Enforce that an operation's required scope is held by the authenticated
+   * principal. Returns the principal (or null when Sytadel auth is disabled — the
+   * local-identity path, where scopes are not enforced). Throws ScopeDeniedError
+   * when auth is enabled but the principal does not hold the scope; auth failures
+   * still surface as SytadelAuthError.
+   */
+  async requireScope(scope: SytadelScope): Promise<SytadelPrincipal | null> {
+    if (!this.cfg.enabled) return null;
+    const principal = await this.authenticate();
+    if (!principal.scopes.includes(scope)) {
+      throw new ScopeDeniedError(scope);
+    }
+    return principal;
   }
 
   private async authenticate(): Promise<SytadelPrincipal> {

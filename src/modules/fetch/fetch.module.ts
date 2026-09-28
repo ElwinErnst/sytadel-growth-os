@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig } from '../../config/configuration';
 import { EvidenceModule } from '../evidence/evidence.module';
+import { IdentityModule } from '../identity/identity.module';
 import { HttpFetcher } from './http-fetcher';
 import { FetchService } from './fetch.service';
 
@@ -11,7 +12,7 @@ import { FetchService } from './fetch.service';
  * server.
  */
 @Module({
-  imports: [EvidenceModule],
+  imports: [EvidenceModule, IdentityModule],
   providers: [
     {
       provide: HttpFetcher,

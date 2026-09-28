@@ -1,32 +1,34 @@
 import { RunStatus } from '../../src/common/enums';
 import { STEP_MARKER } from '../../src/modules/llm/providers/fixture.provider';
 import {
+  ScopeDeniedError,
   SytadelAuthError,
   SytadelIdentityService,
   SytadelPrincipal,
 } from '../../src/modules/identity/sytadel-identity.service';
-import { analysisJson, briefJson, createTestApp, TestApp, uniqueSlug } from './harness';
+import {
+  analysisJson,
+  briefJson,
+  createTestApp,
+  stubIdentity,
+  TestApp,
+  uniqueSlug,
+} from './harness';
 
 function stepScript(analysis: string, brief: string) {
   return (req: { system: string }) =>
     req.system.includes(STEP_MARKER.analysis) ? analysis : brief;
 }
 
-/** Stub identity service that yields a fixed principal. */
-function identityStub(principal: SytadelPrincipal | null): SytadelIdentityService {
-  return {
-    isEnabled: () => principal !== null,
-    getPrincipal: async () => principal,
-  } as unknown as SytadelIdentityService;
-}
-
 /** Stub identity service whose auth always fails. */
 function failingIdentity(): SytadelIdentityService {
+  const boom = () => {
+    throw new SytadelAuthError('Sytadel auth rejected (status 401)');
+  };
   return {
     isEnabled: () => true,
-    getPrincipal: async () => {
-      throw new SytadelAuthError('Sytadel auth rejected (status 401)');
-    },
+    getPrincipal: async () => boom(),
+    requireScope: async () => boom(),
   } as unknown as SytadelIdentityService;
 }
 
@@ -35,7 +37,7 @@ const principal: SytadelPrincipal = {
   tenantSlug: 'acme',
   serviceAccountId: 'sa-1',
   clientAppId: 'app-1',
-  scopes: ['payments:read'],
+  scopes: ['research:read', 'research:fetch'],
 };
 
 async function ingestOne(t: TestApp) {
@@ -73,7 +75,7 @@ describe('RunOrchestrator × Sytadel identity (integration)', () => {
     const t = await createTestApp(
       stepScript(analysisJson('a real signal'), briefJson()),
       undefined,
-      identityStub(principal),
+      stubIdentity(principal),
     );
     try {
       const { workspace, evidenceId } = await ingestOne(t);
@@ -88,6 +90,32 @@ describe('RunOrchestrator × Sytadel identity (integration)', () => {
       expect(run.sytadelTenantId).toBe(principal.tenantId);
       // Local executor identity is preserved, not replaced.
       expect(run.executorId).toBe('local-cli');
+    } finally {
+      await t.close();
+    }
+  });
+
+  it('denies the run when the principal lacks research:read (no run created)', async () => {
+    const t = await createTestApp(
+      stepScript(analysisJson('a real signal'), briefJson()),
+      undefined,
+      stubIdentity({ ...principal, scopes: ['payments:read'] }), // wrong scope
+    );
+    try {
+      const { workspace, evidenceId } = await ingestOne(t);
+      await expect(
+        t.orchestrator.startRun({
+          workspace,
+          evidenceIds: [evidenceId],
+          idempotencyKey: uniqueSlug('key'),
+          executorId: 'local-cli',
+        }),
+      ).rejects.toBeInstanceOf(ScopeDeniedError);
+      const runs = await t.orchestrator.listRuns(workspace.id, {
+        limit: 20,
+        offset: 0,
+      });
+      expect(runs).toHaveLength(0);
     } finally {
       await t.close();
     }
