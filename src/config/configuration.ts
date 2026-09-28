@@ -28,7 +28,38 @@ const envSchema = z.object({
     .positive()
     .default(2_000_000),
   GROWTH_FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
-});
+
+  // Sytadel identity (Slice 3c-1). When enabled, runs authenticate as an
+  // auth-api ServiceAccount and are attributed to that principal. Off by
+  // default → local operator identity, as before.
+  GROWTH_SYTADEL_AUTH: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  GROWTH_SYTADEL_AUTH_URL: z.string().optional(),
+  GROWTH_SYTADEL_TENANT_SLUG: z.string().optional(),
+  GROWTH_SYTADEL_CLIENT_APP_ID: z.string().optional(),
+  GROWTH_SYTADEL_SERVICE_ACCOUNT_ID: z.string().optional(),
+  GROWTH_SYTADEL_CLIENT_SECRET: z.string().optional(),
+  GROWTH_SYTADEL_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+})
+  .refine(
+    (env) =>
+      !env.GROWTH_SYTADEL_AUTH ||
+      Boolean(
+        env.GROWTH_SYTADEL_AUTH_URL &&
+          env.GROWTH_SYTADEL_TENANT_SLUG &&
+          env.GROWTH_SYTADEL_CLIENT_APP_ID &&
+          env.GROWTH_SYTADEL_SERVICE_ACCOUNT_ID &&
+          env.GROWTH_SYTADEL_CLIENT_SECRET,
+      ),
+    {
+      message:
+        'GROWTH_SYTADEL_AUTH=true requires GROWTH_SYTADEL_AUTH_URL, ' +
+        'GROWTH_SYTADEL_TENANT_SLUG, GROWTH_SYTADEL_CLIENT_APP_ID, ' +
+        'GROWTH_SYTADEL_SERVICE_ACCOUNT_ID and GROWTH_SYTADEL_CLIENT_SECRET.',
+    },
+  );
 
 export type AppConfig = {
   db: {
@@ -52,6 +83,15 @@ export type AppConfig = {
   fetch: {
     maxRedirects: number;
     maxBytes: number;
+    timeoutMs: number;
+  };
+  sytadel: {
+    enabled: boolean;
+    authUrl: string | null;
+    tenantSlug: string | null;
+    clientAppId: string | null;
+    serviceAccountId: string | null;
+    clientSecret: string | null;
     timeoutMs: number;
   };
 };
@@ -81,6 +121,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       maxRedirects: parsed.GROWTH_FETCH_MAX_REDIRECTS,
       maxBytes: parsed.GROWTH_FETCH_MAX_BYTES,
       timeoutMs: parsed.GROWTH_FETCH_TIMEOUT_MS,
+    },
+    sytadel: {
+      enabled: parsed.GROWTH_SYTADEL_AUTH,
+      authUrl: parsed.GROWTH_SYTADEL_AUTH_URL?.replace(/\/$/, '') ?? null,
+      tenantSlug: parsed.GROWTH_SYTADEL_TENANT_SLUG ?? null,
+      clientAppId: parsed.GROWTH_SYTADEL_CLIENT_APP_ID ?? null,
+      serviceAccountId: parsed.GROWTH_SYTADEL_SERVICE_ACCOUNT_ID ?? null,
+      clientSecret: parsed.GROWTH_SYTADEL_CLIENT_SECRET ?? null,
+      timeoutMs: parsed.GROWTH_SYTADEL_TIMEOUT_MS,
     },
   };
 }

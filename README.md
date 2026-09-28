@@ -4,14 +4,14 @@ Private market-research and growth workbench for Sytadel. It turns
 operator-supplied evidence into structured signals and an evidence-backed
 **Founder Brief**, so the human decides strategy from facts — not vibes.
 
-> **Status: Slice 3b-2 (typed connectors).** CLI-only. Core workflow (manual
-> evidence → market signals → Founder Brief), multi-evidence runs, listing/query,
-> calibration; **read-only web fetch under SSRF controls**; and a **research
-> source registry** with a resilient `research` run. Connectors: generic
-> `web_page` (HTML→text), **`hacker_news`** (Algolia API), **`github_releases`**
-> (public REST) — all keyless, all through the hardened fetcher. Still no HTTP
-> data endpoints, no outbound messaging, no Sytadel-governed identity. See
-> [`docs/roadmap.md`](docs/roadmap.md) for where this is going.
+> **Status: Slice 3c-1 (Sytadel identity, opt-in).** CLI-only. Core workflow
+> (manual evidence → market signals → Founder Brief), multi-evidence runs,
+> listing/query, calibration; **web fetch under SSRF controls**; a **research
+> source registry** with connectors (`web_page`, `hacker_news`,
+> `github_releases`); and an **opt-in Sytadel identity** — runs can authenticate
+> as an `auth-api` ServiceAccount and be attributed to that principal
+> (`GROWTH_SYTADEL_AUTH`, default off → local identity). Still no HTTP data
+> endpoints, no outbound messaging. See [`docs/roadmap.md`](docs/roadmap.md).
 
 This is a **separate, private repository**. It is not a Sytadel submodule and is
 not part of the Sytadel Compose stack. It integrates with Sytadel only through
@@ -186,6 +186,26 @@ the CLI, e.g.
 ```cron
 0 * * * * cd /path/to/sytadel-growth-os && GROWTH_LLM_PROVIDER=fixture npm run growth -- research --workspace sytadel >> research.log 2>&1
 ```
+
+## Sytadel identity (Slice 3c-1, opt-in)
+
+By default runs use a **local operator identity** (`executor_id`). Setting
+`GROWTH_SYTADEL_AUTH=true` (plus the `GROWTH_SYTADEL_*` credentials) makes Growth
+OS authenticate as an `auth-api` **ServiceAccount** and attribute each run to that
+Sytadel principal (`sytadel_subject` + tenant), **in addition to** the local
+identity — the two are never conflated.
+
+- Growth OS is a **client**: it presents its ServiceAccount secret to the
+  existing `auth-api` token endpoint and reads the returned principal; it does not
+  verify anyone else's tokens.
+- The access token is cached in memory only; the secret and token are never
+  persisted or logged. (Secrets move to Vault in Slice 3c-3.)
+- If auth is enabled and fails, the run **fails visibly** — there is no silent
+  fallback to local identity.
+- Real use requires a tenant with the `apiAuth` entitlement plus a ClientApp +
+  ServiceAccount provisioned in your `auth-api`. See ADR
+  [`0002`](docs/adr/0002-governance.md). Scope authorization (`research:*`) is a
+  later increment (3c-2) and needs a `sytadel-suite` PR.
 
 ## Not yet (documented next steps)
 

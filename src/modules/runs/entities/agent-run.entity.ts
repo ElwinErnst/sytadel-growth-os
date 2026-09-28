@@ -61,6 +61,19 @@ export class AgentRun {
   })
   executorKind!: ExecutorKind;
 
+  /**
+   * Sytadel-authenticated principal (auth-api serviceAccountId) when
+   * GROWTH_SYTADEL_AUTH is enabled. Nullable and ADDITIVE — it never replaces or
+   * is conflated with `executor_id` (the local operator identity). Null means the
+   * run was attributed to the local identity only.
+   */
+  @Column({ name: 'sytadel_subject', type: 'text', nullable: true })
+  sytadelSubject!: string | null;
+
+  /** Sytadel tenant the authenticated principal belongs to (when present). */
+  @Column({ name: 'sytadel_tenant_id', type: 'uuid', nullable: true })
+  sytadelTenantId!: string | null;
+
   // --- Workflow provenance -------------------------------------------------
   @Column({ name: 'agent_role', type: 'text', default: AgentRole.MARKET_RESEARCH })
   agentRole!: AgentRole;
