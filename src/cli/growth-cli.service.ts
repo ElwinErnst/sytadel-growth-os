@@ -422,6 +422,10 @@ export class GrowthCli {
     console.log(
       `  tokens: in=${run.inputTokens} out=${run.outputTokens}   signals: ${signals.length}   brief: ${brief ? 'yes' : 'no'}`,
     );
+    const identity = run.sytadelSubject
+      ? `sytadel sa=${run.sytadelSubject} tenant=${run.sytadelTenantId}`
+      : `local executor=${run.executorId}`;
+    console.log(`  identity: ${identity}`);
     if (run.error) console.log(`  error: ${run.error}`);
     if (brief) console.log(`  brief title: ${brief.title}`);
   }

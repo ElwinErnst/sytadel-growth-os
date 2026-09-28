@@ -14,6 +14,7 @@ import { BriefService } from '../../src/modules/briefs/brief.service';
 import { RunOrchestrator } from '../../src/modules/runs/run-orchestrator.service';
 import { ResearchService } from '../../src/modules/research/research.service';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
+import { SytadelIdentityService } from '../../src/modules/identity/sytadel-identity.service';
 
 export type TestApp = {
   app: TestingModule;
@@ -34,6 +35,7 @@ export type TestApp = {
 export async function createTestApp(
   script?: FixtureScript,
   fetcher?: HttpFetcher,
+  identity?: SytadelIdentityService,
 ): Promise<TestApp> {
   let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(LLM_PROVIDER)
@@ -42,6 +44,11 @@ export async function createTestApp(
     // Swap the hardened fetcher for a loopback-allowing one so research/fetch
     // tests can hit a local server. Production always uses allowLoopback:false.
     builder = builder.overrideProvider(HttpFetcher).useValue(fetcher);
+  }
+  if (identity) {
+    // Swap the Sytadel identity client for a stub so orchestrator tests can
+    // exercise the authenticated-principal path without a real auth-api.
+    builder = builder.overrideProvider(SytadelIdentityService).useValue(identity);
   }
   const moduleRef = await builder.compile();
 

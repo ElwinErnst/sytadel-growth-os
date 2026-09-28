@@ -10,6 +10,10 @@ import { SignalService } from '../signals/signal.service';
 import { BriefService } from '../briefs/brief.service';
 import { AnalysisWorkflow } from '../analysis/analysis.workflow';
 import { LlmRunner } from '../llm/llm-runner.service';
+import {
+  SytadelIdentityService,
+  SytadelPrincipal,
+} from '../identity/sytadel-identity.service';
 import { AppConfig } from '../../config/configuration';
 import {
   AgentRole,
@@ -48,6 +52,7 @@ export class RunOrchestrator {
     private readonly briefs: BriefService,
     private readonly workflow: AnalysisWorkflow,
     private readonly runner: LlmRunner,
+    private readonly identity: SytadelIdentityService,
     config: ConfigService,
   ) {
     this.tokenBudget = config.getOrThrow<AppConfig['run']>('run').tokenBudget;
@@ -62,7 +67,13 @@ export class RunOrchestrator {
       throw new ReferenceIntegrityError('A run needs at least one evidence id');
     }
 
-    const run = await this.getOrCreateRun(input);
+    // Resolve the Sytadel principal before creating the run. When Sytadel auth
+    // is enabled and fails, this throws (visible) — we never silently fall back
+    // to local identity. When disabled, it returns null and the run keeps its
+    // local operator identity only.
+    const principal = await this.identity.getPrincipal();
+
+    const run = await this.getOrCreateRun(input, principal);
     await this.attachEvidence(run, input.workspace.id, input.evidenceIds);
     return this.execute(run.id);
   }
@@ -175,7 +186,10 @@ export class RunOrchestrator {
 
   // --- internals -----------------------------------------------------------
 
-  private async getOrCreateRun(input: StartRunInput): Promise<AgentRun> {
+  private async getOrCreateRun(
+    input: StartRunInput,
+    principal: SytadelPrincipal | null,
+  ): Promise<AgentRun> {
     const existing = await this.runs.findOne({
       where: {
         workspaceId: input.workspace.id,
@@ -189,6 +203,8 @@ export class RunOrchestrator {
       idempotencyKey: input.idempotencyKey,
       executorId: input.executorId,
       executorKind: ExecutorKind.LOCAL,
+      sytadelSubject: principal?.serviceAccountId ?? null,
+      sytadelTenantId: principal?.tenantId ?? null,
       agentRole: AgentRole.MARKET_RESEARCH,
       workflowVersion: WORKFLOW_VERSION,
       promptVersion: PROMPT_VERSION,

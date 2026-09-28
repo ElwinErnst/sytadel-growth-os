@@ -8,6 +8,7 @@ import { SignalsModule } from '../signals/signals.module';
 import { BriefsModule } from '../briefs/briefs.module';
 import { AnalysisModule } from '../analysis/analysis.module';
 import { LlmModule } from '../llm/llm.module';
+import { IdentityModule } from '../identity/identity.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { LlmModule } from '../llm/llm.module';
     BriefsModule,
     AnalysisModule,
     LlmModule,
+    IdentityModule,
   ],
   providers: [RunOrchestrator],
   exports: [RunOrchestrator],
