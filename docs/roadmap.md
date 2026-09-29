@@ -82,7 +82,7 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 | **Research (autonomous)** | **3a ✅** | Web fetch with **SSRF controls** (IP validation + connection pinning), manual redirect re-validation, size/time caps; fetched pages stored as `fetched` evidence. *Shipped.* | Fetch (read-only GET) |
 | Research | **3b-1 ✅** | Connector framework + generic `web_page` connector (HTML→text); per-workspace research source registry; resilient `research` run → `fetched` evidence; cron-friendly scheduling. *Shipped.* | Fetch |
 | Research | **3b-2 ✅** | Typed connectors on the same contract: `hacker_news` (Algolia API) + `github_releases` (public REST), keyless, JSON→digest. Reddit/Product Hunt deferred (need keys → Vault/3c). *Shipped.* | Fetch |
-| Research | 3c | **Governance** (designed in [ADR 0002](adr/0002-governance.md)): **3c-1 identity ✅** · **3c-2 scope enforcement ✅ (Growth-OS side: `research:read`/`research:fetch` enforced; the `auth-api` allowlist PR + provisioning still pending)** · 3c-3 Vault secrets (unlocks Reddit/PH) · 3c-4 audit · 3c-5 HITL | Fetch → **Governance track** |
+| Research | 3c | **Governance** (designed in [ADR 0002](adr/0002-governance.md)): **3c-1 identity ✅** · **3c-2 scope enforcement ✅** (Growth-OS side + `auth-api` scopes allowlist merged; SA provisioning pending) · **3c-3 SecretProvider seam ✅** (env-backed; `securechain-vault` is doc custody, not a KV store — real backend swappable later) · 3c-4 audit · 3c-5 HITL | Fetch → **Governance track** |
 | Research | 4 | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals | Fetch |
 | **ICP & Opportunity** | 5 | **ICP Agent**: refine ideal customer from signals + the concrete hypotheses above | None |
 | ICP | 6 | **Lead Generation + Account Research**: companies & contacts, each evidence-backed | Fetch |
@@ -151,9 +151,8 @@ companies deploying AI workers.
 
 ## Status
 
-- **Slices 1, 2, 3a, 3b-1, 3b-2, 3c-1, 3c-2 (Growth-OS side): shipped** (this
-  repo). 3c governance designed in [ADR 0002](adr/0002-governance.md). Still
-  pending in 3c-2: the **`auth-api` allowlist PR** (`research:*`/`leads:read`) in
-  `sytadel-suite` + ServiceAccount provisioning — decisions captured
-  (research:read/fetch + leads:read; one SA per agent role). Then 3c-3 (Vault),
-  3c-4 (audit), 3c-5 (HITL). See `docs/next-slice-prompt.md`.
+- **Slices 1, 2, 3a, 3b-1, 3b-2, 3c-1, 3c-2, 3c-3: shipped** (this repo). The
+  `auth-api` `research:*`/`leads:read` allowlist PR is **merged** (auth-api #19);
+  what remains for 3c-2 is operator provisioning (one SA per agent role + enable
+  the tenant's `apiAuth`). Next build: **3c-4** (agent-action audit emission),
+  then 3c-5 (HITL). See `docs/next-slice-prompt.md`.

@@ -12,9 +12,10 @@ separate.
 
 > **Status:** CLI-first foundation, actively built in small slices. Working today:
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
-> hardened web fetch, a research-source registry with connectors, and opt-in
-> Sytadel identity. **Not yet:** HTTP data endpoints, outbound messaging, or any
-> autonomous side effect. Full plan in [`docs/roadmap.md`](docs/roadmap.md).
+> hardened web fetch, a research-source registry with connectors, opt-in Sytadel
+> identity with scope enforcement, and a `SecretProvider` seam. **Not yet:** HTTP
+> data endpoints, outbound messaging, or any autonomous side effect. Full plan in
+> [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -136,8 +137,13 @@ exposed before full authentication and authorization exist.
   total time are bounded.
 - **Workspace isolation.** Every row is workspace-scoped; a run's signals may only
   cite evidence supplied to that run in the same workspace.
-- **Secrets stay out of git/prompts/logs.** They live in the environment (and move
-  to Vault in a later slice). Access tokens are cached in memory only.
+- **Secrets stay out of git/prompts/logs — and out of the config object.** All
+  secret access goes through a single `SecretProvider` seam
+  (`src/modules/secrets`); the env-backed implementation is the current backend
+  (the suite has no secrets manager, and `securechain-vault` is document custody,
+  not a KV store). Secrets are never placed on the validated config object, and
+  access tokens are cached in memory only. Swapping in a real secrets backend is
+  a one-file change with no consumer impact.
 - **No autonomous side effects.** Nothing is sent, published, or spent. Any future
   action with an external effect is gated behind human-in-the-loop approval.
 
@@ -274,7 +280,8 @@ src/
     llm/               # provider interface (Anthropic + fixture) + runner
     fetch/             # SSRF guard + hardened HTTP fetcher
     research/          # source registry + connectors
-    identity/          # opt-in Sytadel ServiceAccount auth
+    identity/          # opt-in Sytadel ServiceAccount auth + scope enforcement
+    secrets/           # SecretProvider seam (env-backed; swap point for a real backend)
 docs/
   adr/                 # architecture decision records
   integration/         # verified Sytadel integration surface
