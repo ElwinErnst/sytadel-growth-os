@@ -244,7 +244,16 @@ Growth OS is a **client**: it presents its ServiceAccount secret to the existing
 anyone else's tokens. If auth is enabled and fails, the run **fails visibly** —
 there is no silent fallback to local identity. Real use requires a tenant with the
 `apiAuth` entitlement plus a ClientApp + ServiceAccount provisioned in your
-`auth-api`. Scope authorization (`research:*`), Vault-held secrets, audit
+`auth-api`.
+
+**Scope enforcement.** When Sytadel auth is on, operations require the
+principal to hold the matching scope: `research:read` to run an analysis,
+`research:fetch` to fetch a URL or run a research collection. A missing scope
+fails the operation with a `ScopeDeniedError` (the local-identity path is
+unaffected and keeps its existing guards). Note: these `research:*` scopes are
+added to `auth-api`'s closed allowlist in a **separate `sytadel-suite` PR** (not
+yet opened), so until that lands a real ServiceAccount cannot hold them — meaning
+Sytadel-auth'd research is intentionally gated. Vault-held secrets, audit
 emission, and HITL are later increments — see [ADR 0002](docs/adr/0002-governance.md).
 
 ## Project layout

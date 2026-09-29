@@ -4,7 +4,8 @@ import { EvidenceProvenance, SourceKind } from '../../src/common/enums';
 import { SsrfBlockedError } from '../../src/modules/fetch/ssrf';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
 import { ResearchSource } from '../../src/modules/research/entities/research-source.entity';
-import { createTestApp, TestApp, uniqueSlug } from './harness';
+import { ScopeDeniedError } from '../../src/modules/identity/sytadel-identity.service';
+import { createTestApp, stubIdentity, TestApp, uniqueSlug } from './harness';
 
 const loopbackFetcher = new HttpFetcher({
   maxRedirects: 3,
@@ -114,6 +115,28 @@ describe('Research connectors + run (integration)', () => {
     expect(result.failed).toBe(1);
     const failed = result.outcomes.find((o) => !o.ok);
     expect(failed?.error).toContain('ConnectorError');
+  });
+
+  it('denies a research run when the principal lacks research:fetch', async () => {
+    const denied = await createTestApp(
+      undefined,
+      loopbackFetcher,
+      stubIdentity({
+        tenantId: 't-1',
+        tenantSlug: 'acme',
+        serviceAccountId: 'sa-1',
+        clientAppId: 'app-1',
+        scopes: ['research:read'], // no research:fetch
+      }),
+    );
+    try {
+      const ws = await denied.workspaces.getOrCreate(uniqueSlug());
+      await expect(denied.research.run(ws.id)).rejects.toBeInstanceOf(
+        ScopeDeniedError,
+      );
+    } finally {
+      await denied.close();
+    }
   });
 
   it('deduplicates identical content across repeated runs', async () => {

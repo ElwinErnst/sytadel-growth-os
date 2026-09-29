@@ -14,7 +14,12 @@ import { BriefService } from '../../src/modules/briefs/brief.service';
 import { RunOrchestrator } from '../../src/modules/runs/run-orchestrator.service';
 import { ResearchService } from '../../src/modules/research/research.service';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
-import { SytadelIdentityService } from '../../src/modules/identity/sytadel-identity.service';
+import {
+  ScopeDeniedError,
+  SytadelIdentityService,
+  SytadelPrincipal,
+} from '../../src/modules/identity/sytadel-identity.service';
+import { SytadelScope } from '../../src/modules/identity/scopes';
 
 export type TestApp = {
   app: TestingModule;
@@ -70,6 +75,25 @@ export async function createTestApp(
 /** A unique workspace slug so tests never collide, even across reruns. */
 export function uniqueSlug(prefix = 'test'): string {
   return `${prefix}-${randomUUID().slice(0, 8)}`;
+}
+
+/**
+ * A stub Sytadel identity service. `principal = null` models auth disabled
+ * (local identity). Otherwise requireScope enforces the principal's scopes,
+ * exactly like the real service.
+ */
+export function stubIdentity(
+  principal: SytadelPrincipal | null,
+): SytadelIdentityService {
+  return {
+    isEnabled: () => principal !== null,
+    getPrincipal: async () => principal,
+    requireScope: async (scope: SytadelScope) => {
+      if (!principal) return null;
+      if (!principal.scopes.includes(scope)) throw new ScopeDeniedError(scope);
+      return principal;
+    },
+  } as unknown as SytadelIdentityService;
 }
 
 /** Valid analysis JSON citing evidenceRef 1 with the given statement. */

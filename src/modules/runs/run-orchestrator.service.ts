@@ -14,6 +14,7 @@ import {
   SytadelIdentityService,
   SytadelPrincipal,
 } from '../identity/sytadel-identity.service';
+import { SYTADEL_SCOPES } from '../identity/scopes';
 import { AppConfig } from '../../config/configuration';
 import {
   AgentRole,
@@ -67,11 +68,14 @@ export class RunOrchestrator {
       throw new ReferenceIntegrityError('A run needs at least one evidence id');
     }
 
-    // Resolve the Sytadel principal before creating the run. When Sytadel auth
-    // is enabled and fails, this throws (visible) — we never silently fall back
-    // to local identity. When disabled, it returns null and the run keeps its
-    // local operator identity only.
-    const principal = await this.identity.getPrincipal();
+    // Resolve the Sytadel principal and enforce the read scope before creating
+    // the run. When Sytadel auth is enabled this authenticates and requires
+    // `research:read`; failures (auth or missing scope) throw and are visible —
+    // we never silently fall back to local identity. When disabled it returns
+    // null and the run keeps its local operator identity only.
+    const principal = await this.identity.requireScope(
+      SYTADEL_SCOPES.RESEARCH_READ,
+    );
 
     const run = await this.getOrCreateRun(input, principal);
     await this.attachEvidence(run, input.workspace.id, input.evidenceIds);
