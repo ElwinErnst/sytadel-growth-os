@@ -10,8 +10,15 @@ import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
 import { FetchService } from '../modules/fetch/fetch.service';
 import { ResearchService } from '../modules/research/research.service';
 import { AuditService } from '../modules/audit/audit.service';
+import { ApprovalService } from '../modules/approvals/approval.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
-import { RunStatus, SourceKind } from '../common/enums';
+import {
+  ApprovalAction,
+  ApprovalStatus,
+  AuditAction,
+  RunStatus,
+  SourceKind,
+} from '../common/enums';
 import { toPageParams } from '../common/pagination';
 import {
   CliUsageError,
@@ -46,6 +53,11 @@ Commands:
   brief:list     --workspace <slug> [--limit <n>] [--offset <n>]
   audit:list     (--run <id> | --workspace <slug> [--limit <n>] [--offset <n>])
   brief:show     --run <id>
+  brief:request-delivery --workspace <slug> --run <id> --to <dest> [--expires-in-min <n>]
+  approval:list  --workspace <slug> [--status <status>]
+  approval:approve --id <id> [--by <who>]
+  approval:deny    --id <id> [--by <who>]
+  brief:deliver  --approval <id>   (requires an APPROVED approval; delivery is simulated)
   brief:export   --run <id> --out <path>
 
 Notes:
@@ -69,6 +81,7 @@ export class GrowthCli {
     private readonly fetch: FetchService,
     private readonly research: ResearchService,
     private readonly audit: AuditService,
+    private readonly approvals: ApprovalService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -101,6 +114,16 @@ export class GrowthCli {
           return await this.briefList(args);
         case 'audit:list':
           return await this.auditList(args);
+        case 'approval:list':
+          return await this.approvalList(args);
+        case 'approval:approve':
+          return await this.approvalDecide(args, true);
+        case 'approval:deny':
+          return await this.approvalDecide(args, false);
+        case 'brief:request-delivery':
+          return await this.briefRequestDelivery(args);
+        case 'brief:deliver':
+          return await this.briefDeliver(args);
         case 'run:show':
           return await this.runShow(args);
         case 'run:resume':
@@ -332,6 +355,102 @@ export class GrowthCli {
     return 0;
   }
 
+  private async approvalList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const page = toPageParams(getOne(args, 'limit'), getOne(args, 'offset'));
+    const statusRaw = getOne(args, 'status');
+    const status = this.parseApprovalStatus(statusRaw);
+    if (statusRaw !== undefined && status === undefined) {
+      console.error(
+        `Invalid --status "${statusRaw}". Use one of: ${Object.values(ApprovalStatus).join(', ')}`,
+      );
+      return 2;
+    }
+    const rows = await this.approvals.listByWorkspace(ws.id, page, status);
+    console.log(`Approvals in ${ws.slug} (${rows.length}):`);
+    for (const a of rows) {
+      console.log(
+        `  ${a.id}\t${a.status}\t${a.action}\treq_by=${a.requestedBy}\t${JSON.stringify(a.params)}`,
+      );
+    }
+    return 0;
+  }
+
+  private async approvalDecide(
+    args: ParsedArgs,
+    approve: boolean,
+  ): Promise<number> {
+    const id = requireOne(args, 'id');
+    const by = getOne(args, 'by') ?? 'operator';
+    const request = approve
+      ? await this.approvals.approve(id, by)
+      : await this.approvals.deny(id, by);
+    console.log(`Approval ${request.id} is now ${request.status} (by ${by}).`);
+    return 0;
+  }
+
+  private async briefRequestDelivery(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const runId = requireOne(args, 'run');
+    const to = requireOne(args, 'to');
+    const brief = await this.briefs.findByRun(runId);
+    if (!brief) {
+      console.error(`No brief for run ${runId}; nothing to deliver.`);
+      return 1;
+    }
+    const expiresMin = getOne(args, 'expires-in-min');
+    const expiresAt = expiresMin
+      ? new Date(Date.now() + Number(expiresMin) * 60_000)
+      : null;
+    const request = await this.approvals.propose({
+      workspaceId: ws.id,
+      action: ApprovalAction.BRIEF_DELIVERY,
+      params: { runId, to },
+      requestedBy: getOne(args, 'executor') ?? 'local-cli',
+      expiresAt,
+    });
+    console.log(`Delivery PROPOSED — pending human approval. No action taken.`);
+    console.log(`  approval: ${request.id}   to: ${to}   run: ${runId}`);
+    console.log(
+      `  approve with: approval:approve --id ${request.id}, then brief:deliver --approval ${request.id}`,
+    );
+    return 0;
+  }
+
+  private async briefDeliver(args: ParsedArgs): Promise<number> {
+    const approvalId = requireOne(args, 'approval');
+    // Gate: only an APPROVED, un-executed brief.delivery approval may proceed.
+    const request = await this.approvals.requireApproved(
+      approvalId,
+      ApprovalAction.BRIEF_DELIVERY,
+    );
+    const runId = String(request.params.runId ?? '');
+    const to = String(request.params.to ?? '');
+    const brief = await this.briefs.findByRun(runId);
+    if (!brief) {
+      console.error(`No brief for run ${runId}.`);
+      return 1;
+    }
+
+    // SIMULATED delivery — Growth OS performs no real outbound. This only proves
+    // the approval gate end-to-end.
+    console.log(
+      `[simulated] Would deliver brief "${brief.title}" (run ${runId}) to ${to}. No real outbound performed.`,
+    );
+    await this.approvals.markExecuted(approvalId);
+    await this.audit.record({
+      workspaceId: request.workspaceId,
+      runId,
+      action: AuditAction.BRIEF_DELIVERED,
+      actor: { executorId: request.decidedBy ?? request.requestedBy },
+      metadata: { approvalId, to, simulated: true },
+    });
+    console.log(`Delivered (simulated). approval ${approvalId} marked executed.`);
+    return 0;
+  }
+
   private async auditList(args: ParsedArgs): Promise<number> {
     const runId = getOne(args, 'run');
     if (runId) {
@@ -427,6 +546,15 @@ export class GrowthCli {
     if (raw === undefined) return undefined;
     return (Object.values(SourceKind) as string[]).includes(raw)
       ? (raw as SourceKind)
+      : undefined;
+  }
+
+  private parseApprovalStatus(
+    raw: string | undefined,
+  ): ApprovalStatus | undefined {
+    if (raw === undefined) return undefined;
+    return (Object.values(ApprovalStatus) as string[]).includes(raw)
+      ? (raw as ApprovalStatus)
       : undefined;
   }
 

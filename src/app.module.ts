@@ -12,6 +12,7 @@ import { FetchModule } from './modules/fetch/fetch.module';
 import { ResearchModule } from './modules/research/research.module';
 import { SecretsModule } from './modules/secrets/secrets.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { GrowthCli } from './cli/growth-cli.service';
 
 /**
@@ -45,6 +46,7 @@ import { GrowthCli } from './cli/growth-cli.service';
     FetchModule,
     ResearchModule,
     AuditModule,
+    ApprovalsModule,
   ],
   providers: [GrowthCli],
 })

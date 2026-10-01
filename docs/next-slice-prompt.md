@@ -23,36 +23,25 @@ The full governance architecture is fixed in
 [`docs/adr/0002-governance.md`](adr/0002-governance.md), grounded in the verified
 `auth-api` service-account token contract. Increments: **3c-1 identity ✅** ·
 **3c-2 scope enforcement ✅** (Growth-OS + `auth-api` allowlist PR merged) ·
-**3c-3 SecretProvider seam ✅** · **3c-4 agent-action audit ✅ (local)** · 3c-5
-HITL. No `sytadel-suite` PR is opened without confirming scope first.
+**3c-3 SecretProvider seam ✅** · **3c-4 agent-action audit ✅ (local)** ·
+**3c-5 HITL approval gate ✅**. **Governance track (3c) is core complete.** No
+`sytadel-suite` PR is opened without confirming scope first.
 
-## Recommended next: Slice 3c-5 — HITL approval gate
+## Recommended next: pick a direction
 
-> Model a human-in-the-loop approval gate so any future action with an external
-> side effect (send / publish / spend) is blocked until a human approves — this
-> is the invariant that outranks any scope grant. There is no such action yet, so
-> 3c-5 builds the MECHANISM and proves it with a representative gated action.
->
-> 1. Model an `ApprovalRequest` (workspace, requested action + sanitized params,
->    status pending/approved/denied/expired, requester identity, decider, decided
->    at, optional expiry). Append-only decisions; persisted.
-> 2. A gate service: proposing an action persists a pending request and STOPS;
->    executing requires an approved request; denials/expiries are terminal. No
->    autonomous execution, ever.
-> 3. CLI: `approval:list`, `approval:approve --id <id>`, `approval:deny --id <id>`
->    — and a representative gated action to demonstrate the flow end-to-end (pick
->    the smallest safe one; do NOT build real outbound).
-> 4. Emit audit events for propose/approve/deny/execute (reuse `audit`).
-> 5. Tests: propose→pending (no execution); execute-before-approval rejected;
->    approve→executable; deny/expire terminal.
+The governance backbone is done; nothing with an external side effect runs without
+a human. Reasonable next directions (confirm with the operator):
 
-## Then (later, suite-touching — confirm scope first)
-
-- Forward the agent-action audit trail to the suite's **unified audit timeline**.
-- Audit `fetch`/`research` actions (needs an actor/run model for them).
-- **Operator, anytime**: bump the `auth-api` submodule pointer in `sytadel-suite`
-  so the suite records the merged scopes (meta-repo change — confirm first), and
-  provision one SA per agent role + enable the tenant's `apiAuth`.
+1. **Product: Slice 5 — ICP Agent** (local, no suite): refine an ideal-customer
+   profile from persisted signals + the concrete hypotheses in `docs/roadmap.md`
+   (B2B multi-tenant SaaS; AI-agent startups; software houses; regulated firms).
+   Pure read/analysis over existing signals — a natural next Growth OS feature.
+2. **Governance finish (operator/suite-touching — confirm scope first):**
+   - Provision one `auth-api` ServiceAccount per agent role + enable the tenant's
+     `apiAuth`, then set `GROWTH_SYTADEL_*` + `GROWTH_SYTADEL_AUTH=true`.
+   - Bump the `auth-api` submodule pointer in `sytadel-suite` (meta-repo change).
+   - Forward the agent-action audit trail to the suite's **unified audit
+     timeline**; and audit `fetch`/`research` actions (needs an actor/run model).
 
 ## Guardrail reminders (all slices)
 
