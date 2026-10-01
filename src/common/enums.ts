@@ -94,3 +94,13 @@ export enum SignalKind {
   FACT = 'fact',
   HYPOTHESIS = 'hypothesis',
 }
+
+/**
+ * Agent-action audit event types. Append-only trail of what agents did. Scoped
+ * to run lifecycle in this slice; fetch/research/outbound events are future.
+ */
+export enum AuditAction {
+  RUN_STARTED = 'run.started',
+  RUN_COMPLETED = 'run.completed',
+  RUN_FAILED = 'run.failed',
+}

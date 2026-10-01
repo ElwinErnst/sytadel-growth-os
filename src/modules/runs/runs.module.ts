@@ -9,6 +9,7 @@ import { BriefsModule } from '../briefs/briefs.module';
 import { AnalysisModule } from '../analysis/analysis.module';
 import { LlmModule } from '../llm/llm.module';
 import { IdentityModule } from '../identity/identity.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { IdentityModule } from '../identity/identity.module';
     AnalysisModule,
     LlmModule,
     IdentityModule,
+    AuditModule,
   ],
   providers: [RunOrchestrator],
   exports: [RunOrchestrator],

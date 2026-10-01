@@ -9,6 +9,7 @@ import { BriefService } from '../modules/briefs/brief.service';
 import { RunOrchestrator } from '../modules/runs/run-orchestrator.service';
 import { FetchService } from '../modules/fetch/fetch.service';
 import { ResearchService } from '../modules/research/research.service';
+import { AuditService } from '../modules/audit/audit.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import { RunStatus, SourceKind } from '../common/enums';
 import { toPageParams } from '../common/pagination';
@@ -43,6 +44,7 @@ Commands:
   run:resume     --run <id>
   signal:list    --run <id>
   brief:list     --workspace <slug> [--limit <n>] [--offset <n>]
+  audit:list     (--run <id> | --workspace <slug> [--limit <n>] [--offset <n>])
   brief:show     --run <id>
   brief:export   --run <id> --out <path>
 
@@ -66,6 +68,7 @@ export class GrowthCli {
     private readonly orchestrator: RunOrchestrator,
     private readonly fetch: FetchService,
     private readonly research: ResearchService,
+    private readonly audit: AuditService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -96,6 +99,8 @@ export class GrowthCli {
           return await this.signalList(args);
         case 'brief:list':
           return await this.briefList(args);
+        case 'audit:list':
+          return await this.auditList(args);
         case 'run:show':
           return await this.runShow(args);
         case 'run:resume':
@@ -325,6 +330,40 @@ export class GrowthCli {
       );
     }
     return 0;
+  }
+
+  private async auditList(args: ParsedArgs): Promise<number> {
+    const runId = getOne(args, 'run');
+    if (runId) {
+      const events = await this.audit.listByRun(runId);
+      console.log(`Audit events for run ${runId} (${events.length}):`);
+      for (const e of events) this.printAuditEvent(e);
+      return 0;
+    }
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const page = toPageParams(getOne(args, 'limit'), getOne(args, 'offset'));
+    const events = await this.audit.listByWorkspace(ws.id, page);
+    const total = await this.audit.countByWorkspace(ws.id);
+    console.log(`Audit events in ${ws.slug} (${events.length} of ${total}):`);
+    for (const e of events) this.printAuditEvent(e);
+    return 0;
+  }
+
+  private printAuditEvent(e: {
+    createdAt: Date;
+    action: string;
+    runId: string | null;
+    actorExecutorId: string | null;
+    actorSytadelSubject: string | null;
+    metadata: Record<string, unknown>;
+  }): void {
+    const actor = e.actorSytadelSubject
+      ? `sytadel:${e.actorSytadelSubject}`
+      : `local:${e.actorExecutorId ?? '-'}`;
+    console.log(
+      `  ${e.createdAt.toISOString()}\t${e.action}\trun=${e.runId ?? '-'}\t${actor}\t${JSON.stringify(e.metadata)}`,
+    );
   }
 
   private async runShow(args: ParsedArgs): Promise<number> {

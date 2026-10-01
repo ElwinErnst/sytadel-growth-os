@@ -13,9 +13,9 @@ separate.
 > **Status:** CLI-first foundation, actively built in small slices. Working today:
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
 > hardened web fetch, a research-source registry with connectors, opt-in Sytadel
-> identity with scope enforcement, and a `SecretProvider` seam. **Not yet:** HTTP
-> data endpoints, outbound messaging, or any autonomous side effect. Full plan in
-> [`docs/roadmap.md`](docs/roadmap.md).
+> identity with scope enforcement, a `SecretProvider` seam, and an append-only
+> agent-action audit trail. **Not yet:** HTTP data endpoints, outbound messaging,
+> or any autonomous side effect. Full plan in [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -196,6 +196,7 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 | `run:resume --run <id>` | Resume an interrupted/failed run from its last durable stage. |
 | `signal:list --run <id>` | List the signals extracted by a run. |
 | `brief:list --workspace <slug>` | List a workspace's briefs (paginated). |
+| `audit:list --run <id>` / `--workspace <slug>` | List the agent-action audit trail. |
 | `brief:show --run <id>` | Print the rendered Founder Brief (Markdown). |
 | `brief:export --run <id> --out <path>` | Write the brief to a file. |
 
@@ -262,6 +263,17 @@ yet opened), so until that lands a real ServiceAccount cannot hold them — mean
 Sytadel-auth'd research is intentionally gated. Vault-held secrets, audit
 emission, and HITL are later increments — see [ADR 0002](docs/adr/0002-governance.md).
 
+### Audit
+
+Every run emits an **append-only** agent-action trail (`run.started`,
+`run.completed`, `run.failed`) carrying both identities (local executor + the
+Sytadel principal when present) and small, sanitized metadata (stage, versions,
+token usage, sanitized error). It **never** records secrets, tokens, or source
+content. Auditing is failure-isolated — an audit write can never break the run it
+describes. Inspect it with `audit:list --run <id>` or `--workspace <slug>`.
+Forwarding the trail to the suite's unified audit timeline is a later,
+suite-touching increment.
+
 ## Project layout
 
 ```
@@ -282,6 +294,7 @@ src/
     research/          # source registry + connectors
     identity/          # opt-in Sytadel ServiceAccount auth + scope enforcement
     secrets/           # SecretProvider seam (env-backed; swap point for a real backend)
+    audit/             # append-only agent-action audit trail
 docs/
   adr/                 # architecture decision records
   integration/         # verified Sytadel integration surface

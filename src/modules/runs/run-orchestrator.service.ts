@@ -15,9 +15,11 @@ import {
   SytadelPrincipal,
 } from '../identity/sytadel-identity.service';
 import { SYTADEL_SCOPES } from '../identity/scopes';
+import { AuditService } from '../audit/audit.service';
 import { AppConfig } from '../../config/configuration';
 import {
   AgentRole,
+  AuditAction,
   ExecutorKind,
   RunStage,
   RunStatus,
@@ -54,6 +56,7 @@ export class RunOrchestrator {
     private readonly workflow: AnalysisWorkflow,
     private readonly runner: LlmRunner,
     private readonly identity: SytadelIdentityService,
+    private readonly audit: AuditService,
     config: ConfigService,
   ) {
     this.tokenBudget = config.getOrThrow<AppConfig['run']>('run').tokenBudget;
@@ -95,6 +98,13 @@ export class RunOrchestrator {
       status: RunStatus.RUNNING,
       startedAt: run.startedAt ?? new Date(),
       error: null,
+    });
+    await this.emitAudit(run, AuditAction.RUN_STARTED, {
+      stage: run.stage,
+      workflowVersion: run.workflowVersion,
+      promptVersion: run.promptVersion,
+      provider: run.provider,
+      model: run.model,
     });
 
     try {
@@ -156,10 +166,16 @@ export class RunOrchestrator {
         run = await this.update(run, { stage: RunStage.BRIEF_PERSISTED });
       }
 
-      return this.update(run, {
+      run = await this.update(run, {
         status: RunStatus.COMPLETED,
         finishedAt: new Date(),
       });
+      await this.emitAudit(run, AuditAction.RUN_COMPLETED, {
+        stage: run.stage,
+        inputTokens: run.inputTokens,
+        outputTokens: run.outputTokens,
+      });
+      return run;
     } catch (err) {
       return this.fail(run, err);
     }
@@ -293,10 +309,34 @@ export class RunOrchestrator {
   private async fail(run: AgentRun, err: unknown): Promise<AgentRun> {
     const message = sanitizeError(err);
     this.logger.warn(`Run ${run.id} failed: ${message}`);
-    return this.update(run, {
+    const failed = await this.update(run, {
       status: RunStatus.FAILED,
       finishedAt: new Date(),
       error: message,
+    });
+    await this.emitAudit(failed, AuditAction.RUN_FAILED, {
+      stage: failed.stage,
+      error: message, // already sanitized (name: message), no payloads/secrets
+    });
+    return failed;
+  }
+
+  /** Emit an audit event for a run, carrying both identities from the run. */
+  private async emitAudit(
+    run: AgentRun,
+    action: AuditAction,
+    metadata: Record<string, string | number | boolean | null>,
+  ): Promise<void> {
+    await this.audit.record({
+      workspaceId: run.workspaceId,
+      runId: run.id,
+      action,
+      actor: {
+        executorId: run.executorId,
+        sytadelSubject: run.sytadelSubject,
+        tenantId: run.sytadelTenantId,
+      },
+      metadata,
     });
   }
 
