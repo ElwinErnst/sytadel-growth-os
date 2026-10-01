@@ -23,37 +23,36 @@ The full governance architecture is fixed in
 [`docs/adr/0002-governance.md`](adr/0002-governance.md), grounded in the verified
 `auth-api` service-account token contract. Increments: **3c-1 identity ✅** ·
 **3c-2 scope enforcement ✅** (Growth-OS + `auth-api` allowlist PR merged) ·
-**3c-3 SecretProvider seam ✅** · 3c-4 audit · 3c-5 HITL. No `sytadel-suite` PR is
-opened without confirming scope first.
+**3c-3 SecretProvider seam ✅** · **3c-4 agent-action audit ✅ (local)** · 3c-5
+HITL. No `sytadel-suite` PR is opened without confirming scope first.
 
-## Recommended next: Slice 3c-4 — agent-action audit
+## Recommended next: Slice 3c-5 — HITL approval gate
 
-> Emit an append-only audit trail of agent actions, initially **local to Growth
-> OS** (no suite change), so runs and their side-effecting steps are traceable.
-> Later, forward to the suite's unified timeline (that step touches the suite →
-> confirm scope first).
+> Model a human-in-the-loop approval gate so any future action with an external
+> side effect (send / publish / spend) is blocked until a human approves — this
+> is the invariant that outranks any scope grant. There is no such action yet, so
+> 3c-5 builds the MECHANISM and proves it with a representative gated action.
 >
-> 1. Model an `AgentAuditEvent` (workspace, run id, actor: local executor +
->    optional `sytadel_subject`/tenant, action type — e.g. run.started,
->    run.completed, run.failed, fetch.performed, research.collected,
->    brief.generated — timestamp, sanitized metadata). Append-only; never logs
->    secrets or raw source content.
-> 2. Emit from the orchestrator/fetch/research at the right points. Keep it
->    deterministic and failure-isolated (an audit write must not break a run;
->    but a persisted run should have its audit rows).
-> 3. Add a `audit:list --run <id>` / `--workspace <slug>` CLI view.
-> 4. Tests: events emitted for happy path + failures; no secrets/content leak;
->    ordering stable. Consider whether hash-chaining (cf. auth/billing audit
->    chains in the suite) is worth it now or later.
+> 1. Model an `ApprovalRequest` (workspace, requested action + sanitized params,
+>    status pending/approved/denied/expired, requester identity, decider, decided
+>    at, optional expiry). Append-only decisions; persisted.
+> 2. A gate service: proposing an action persists a pending request and STOPS;
+>    executing requires an approved request; denials/expiries are terminal. No
+>    autonomous execution, ever.
+> 3. CLI: `approval:list`, `approval:approve --id <id>`, `approval:deny --id <id>`
+>    — and a representative gated action to demonstrate the flow end-to-end (pick
+>    the smallest safe one; do NOT build real outbound).
+> 4. Emit audit events for propose/approve/deny/execute (reuse `audit`).
+> 5. Tests: propose→pending (no execution); execute-before-approval rejected;
+>    approve→executable; deny/expire terminal.
 
-## Then
+## Then (later, suite-touching — confirm scope first)
 
-- **3c-4 (suite side, later)**: forward agent-action audit to the suite's unified
-  timeline — touches `sytadel-suite`; confirm scope first.
-- **3c-5**: HITL approval gate (arrives with the first send/publish/spend
-  capability).
+- Forward the agent-action audit trail to the suite's **unified audit timeline**.
+- Audit `fetch`/`research` actions (needs an actor/run model for them).
 - **Operator, anytime**: bump the `auth-api` submodule pointer in `sytadel-suite`
-  so the suite records the merged scopes (meta-repo change — confirm first).
+  so the suite records the merged scopes (meta-repo change — confirm first), and
+  provision one SA per agent role + enable the tenant's `apiAuth`.
 
 ## Guardrail reminders (all slices)
 

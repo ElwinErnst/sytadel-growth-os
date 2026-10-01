@@ -13,6 +13,7 @@ import { SignalService } from '../../src/modules/signals/signal.service';
 import { BriefService } from '../../src/modules/briefs/brief.service';
 import { RunOrchestrator } from '../../src/modules/runs/run-orchestrator.service';
 import { ResearchService } from '../../src/modules/research/research.service';
+import { AuditService } from '../../src/modules/audit/audit.service';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
 import {
   ScopeDeniedError,
@@ -30,6 +31,7 @@ export type TestApp = {
   briefs: BriefService;
   orchestrator: RunOrchestrator;
   research: ResearchService;
+  audit: AuditService;
   close: () => Promise<void>;
 };
 
@@ -68,6 +70,7 @@ export async function createTestApp(
     briefs: app.get(BriefService),
     orchestrator: app.get(RunOrchestrator),
     research: app.get(ResearchService),
+    audit: app.get(AuditService),
     close: () => app.close(),
   };
 }
