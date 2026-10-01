@@ -13,9 +13,10 @@ separate.
 > **Status:** CLI-first foundation, actively built in small slices. Working today:
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
 > hardened web fetch, a research-source registry with connectors, opt-in Sytadel
-> identity with scope enforcement, a `SecretProvider` seam, and an append-only
-> agent-action audit trail. **Not yet:** HTTP data endpoints, outbound messaging,
-> or any autonomous side effect. Full plan in [`docs/roadmap.md`](docs/roadmap.md).
+> identity with scope enforcement, a `SecretProvider` seam, an append-only
+> agent-action audit trail, and a human-in-the-loop approval gate. **Not yet:**
+> HTTP data endpoints, outbound messaging, or any autonomous side effect. Full
+> plan in [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -144,8 +145,9 @@ exposed before full authentication and authorization exist.
   not a KV store). Secrets are never placed on the validated config object, and
   access tokens are cached in memory only. Swapping in a real secrets backend is
   a one-file change with no consumer impact.
-- **No autonomous side effects.** Nothing is sent, published, or spent. Any future
-  action with an external effect is gated behind human-in-the-loop approval.
+- **No autonomous side effects.** Nothing is sent, published, or spent. Any action
+  with an external effect is gated behind a **human-in-the-loop approval** that
+  outranks any scope grant (see [HITL](#human-in-the-loop-hitl)).
 
 ## Prerequisites
 
@@ -199,6 +201,10 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 | `audit:list --run <id>` / `--workspace <slug>` | List the agent-action audit trail. |
 | `brief:show --run <id>` | Print the rendered Founder Brief (Markdown). |
 | `brief:export --run <id> --out <path>` | Write the brief to a file. |
+| `brief:request-delivery --workspace <slug> --run <id> --to <dest>` | Propose a (gated) brief delivery — persists PENDING, does nothing. |
+| `approval:list --workspace <slug>` | List approval requests (optional `--status`). |
+| `approval:approve --id <id>` / `approval:deny --id <id>` | Human decision on a pending approval. |
+| `brief:deliver --approval <id>` | Execute a delivery — only if APPROVED (delivery is **simulated**). |
 
 **`analyze` flags:** `--workspace <slug>` (required); either `--evidence <id> [<id>…]`
 (multiple ids analyze several sources in one run) or an inline `--file <path>
@@ -274,6 +280,24 @@ describes. Inspect it with `audit:list --run <id>` or `--workspace <slug>`.
 Forwarding the trail to the suite's unified audit timeline is a later,
 suite-touching increment.
 
+### Human-in-the-loop (HITL)
+
+Any action with an external side effect (send / publish / spend) must be
+**approved by a human before it runs** — the invariant that **outranks any scope
+grant**. There is no such action yet, so the mechanism is proven with a
+representative gated action: a **simulated** brief delivery (no real outbound).
+
+```bash
+npm run growth -- brief:request-delivery --workspace sytadel --run <id> --to ops@acme.com   # → PENDING, does nothing
+npm run growth -- brief:deliver --approval <id>    # rejected: not approved
+npm run growth -- approval:approve --id <id>
+npm run growth -- brief:deliver --approval <id>    # [simulated] delivers; then marked executed
+```
+
+Proposing persists a `PENDING` request and stops; execution requires an
+`APPROVED`, un-executed request (no replay); `DENIED`/`EXPIRED` are terminal.
+Every step is audited.
+
 ## Project layout
 
 ```
@@ -295,6 +319,7 @@ src/
     identity/          # opt-in Sytadel ServiceAccount auth + scope enforcement
     secrets/           # SecretProvider seam (env-backed; swap point for a real backend)
     audit/             # append-only agent-action audit trail
+    approvals/         # human-in-the-loop approval gate
 docs/
   adr/                 # architecture decision records
   integration/         # verified Sytadel integration surface

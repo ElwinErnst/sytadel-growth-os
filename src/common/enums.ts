@@ -103,4 +103,26 @@ export enum AuditAction {
   RUN_STARTED = 'run.started',
   RUN_COMPLETED = 'run.completed',
   RUN_FAILED = 'run.failed',
+  APPROVAL_REQUESTED = 'approval.requested',
+  APPROVAL_APPROVED = 'approval.approved',
+  APPROVAL_DENIED = 'approval.denied',
+  BRIEF_DELIVERED = 'brief.delivered',
+}
+
+/**
+ * Human-in-the-loop approval lifecycle. An action with an external side effect
+ * is proposed (PENDING) and must be APPROVED by a human before it may run;
+ * DENIED/EXPIRED are terminal. No autonomous execution, ever.
+ */
+export enum ApprovalStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  DENIED = 'denied',
+  EXPIRED = 'expired',
+}
+
+/** The kind of action an approval gates. Extensible as real actions arrive. */
+export enum ApprovalAction {
+  /** Representative gated action (delivery is SIMULATED — no real outbound). */
+  BRIEF_DELIVERY = 'brief.delivery',
 }

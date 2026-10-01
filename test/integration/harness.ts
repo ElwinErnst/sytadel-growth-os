@@ -14,6 +14,7 @@ import { BriefService } from '../../src/modules/briefs/brief.service';
 import { RunOrchestrator } from '../../src/modules/runs/run-orchestrator.service';
 import { ResearchService } from '../../src/modules/research/research.service';
 import { AuditService } from '../../src/modules/audit/audit.service';
+import { ApprovalService } from '../../src/modules/approvals/approval.service';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
 import {
   ScopeDeniedError,
@@ -32,6 +33,7 @@ export type TestApp = {
   orchestrator: RunOrchestrator;
   research: ResearchService;
   audit: AuditService;
+  approvals: ApprovalService;
   close: () => Promise<void>;
 };
 
@@ -71,6 +73,7 @@ export async function createTestApp(
     orchestrator: app.get(RunOrchestrator),
     research: app.get(ResearchService),
     audit: app.get(AuditService),
+    approvals: app.get(ApprovalService),
     close: () => app.close(),
   };
 }
