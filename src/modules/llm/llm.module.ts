@@ -5,6 +5,11 @@ import { LLM_PROVIDER, LlmProvider } from './llm-provider.interface';
 import { AnthropicProvider } from './providers/anthropic.provider';
 import { FixtureProvider } from './providers/fixture.provider';
 import { LlmRunner } from './llm-runner.service';
+import {
+  SECRET_NAMES,
+  SECRET_PROVIDER,
+  SecretProvider,
+} from '../secrets/secret-provider';
 
 /**
  * Wires the configured LLM provider. `anthropic` requires a key; if the key is
@@ -15,8 +20,11 @@ import { LlmRunner } from './llm-runner.service';
   providers: [
     {
       provide: LLM_PROVIDER,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService): LlmProvider => {
+      inject: [ConfigService, SECRET_PROVIDER],
+      useFactory: (
+        config: ConfigService,
+        secrets: SecretProvider,
+      ): LlmProvider => {
         const llm = config.getOrThrow<AppConfig['llm']>('llm');
         const logger = new Logger('LlmModule');
 
@@ -27,13 +35,14 @@ import { LlmRunner } from './llm-runner.service';
           return new FixtureProvider(llm.model);
         }
 
-        if (!llm.apiKey) {
+        const apiKey = secrets.get(SECRET_NAMES.ANTHROPIC_API_KEY);
+        if (!apiKey) {
           throw new Error(
             'GROWTH_LLM_PROVIDER=anthropic requires ANTHROPIC_API_KEY. ' +
               'Set the key, or use GROWTH_LLM_PROVIDER=fixture for offline runs.',
           );
         }
-        return new AnthropicProvider(llm.apiKey, llm.model);
+        return new AnthropicProvider(apiKey, llm.model);
       },
     },
     LlmRunner,

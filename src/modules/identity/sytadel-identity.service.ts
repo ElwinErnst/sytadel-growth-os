@@ -3,6 +3,14 @@ import { z } from 'zod';
 import { AppConfig } from '../../config/configuration';
 import { SytadelScope } from './scopes';
 
+/**
+ * The identity service's config: the non-secret Sytadel config plus the client
+ * secret, which is sourced from the SecretProvider (not the config object).
+ */
+export type SytadelIdentityConfig = AppConfig['sytadel'] & {
+  clientSecret: string | null;
+};
+
 /** The authenticated Sytadel principal, read from the token response. */
 export type SytadelPrincipal = {
   tenantId: string;
@@ -56,7 +64,7 @@ export class SytadelIdentityService {
   private readonly logger = new Logger(SytadelIdentityService.name);
   private cache?: { principal: SytadelPrincipal; token: string; expiresAt: number };
 
-  constructor(private readonly cfg: AppConfig['sytadel']) {}
+  constructor(private readonly cfg: SytadelIdentityConfig) {}
 
   isEnabled(): boolean {
     return this.cfg.enabled;

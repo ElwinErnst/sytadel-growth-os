@@ -8,42 +8,52 @@ verified in this repo or in `sytadel-suite`.
 > Slice 3b-1 (connector framework + `web_page`, research registry, resilient
 > `research` run, cron), Slice 3b-2 (typed connectors: `hacker_news`,
 > `github_releases`), Slice 3c-1 (opt-in Sytadel identity client), Slice 3c-2
-> Growth-OS side (scope enforcement: `research:read` for analyze, `research:fetch`
-> for fetch/research, via `requireScope` — the local-identity path is unchanged).
-> See `docs/mvp/`.
+> (scope enforcement in Growth OS + `auth-api` `research:*`/`leads:read` allowlist
+> PR merged — auth-api #19), Slice 3c-3 (`SecretProvider` seam, env-backed;
+> secrets removed from the config object). See `docs/mvp/`.
+
+> **Operator provisioning still pending for 3c-2 runtime:** one `auth-api`
+> ServiceAccount per agent role (research/sales/content) with least-privilege
+> scopes + enable the tenant's `apiAuth`, then set `GROWTH_SYTADEL_*` +
+> `GROWTH_SYTADEL_AUTH=true`. (No code needed — enforcement + grants already exist.)
 
 ## Slice 3c — Governance: DESIGNED (see ADR 0002)
 
 The full governance architecture is fixed in
 [`docs/adr/0002-governance.md`](adr/0002-governance.md), grounded in the verified
 `auth-api` service-account token contract. Increments: **3c-1 identity ✅** ·
-**3c-2 scope enforcement ✅ (Growth-OS side)** · 3c-3 Vault · 3c-4 audit · 3c-5
-HITL. No `sytadel-suite` PR is opened without confirming scope first.
+**3c-2 scope enforcement ✅** (Growth-OS + `auth-api` allowlist PR merged) ·
+**3c-3 SecretProvider seam ✅** · 3c-4 audit · 3c-5 HITL. No `sytadel-suite` PR is
+opened without confirming scope first.
 
-## Recommended next: Slice 3c-2 (suite side) — add `research:*` scopes to auth-api
+## Recommended next: Slice 3c-4 — agent-action audit
 
-> ⚠️ FIRST change that touches `sytadel-suite`. Scope already confirmed with the
-> operator: add **`research:read`, `research:fetch`, `leads:read`**;
-> **one ServiceAccount per agent role** (research / sales / content). Re-confirm
-> before opening if anything changed.
+> Emit an append-only audit trail of agent actions, initially **local to Growth
+> OS** (no suite change), so runs and their side-effecting steps are traceable.
+> Later, forward to the suite's unified timeline (that step touches the suite →
+> confirm scope first).
 >
-> 1. In `sytadel-suite` → `auth/auth-api/src/modules/integrations/api-scopes.ts`,
->    add `research:read`, `research:fetch`, `leads:read` to the closed
->    `API_SCOPES` allowlist (unknown scopes are rejected at key creation).
->    Add/extend allowlist tests. Open as a **separate PR in `sytadel-suite`**
->    (submodule `auth-api`), following its conventions (code-only; no migration).
-> 2. Provision one ServiceAccount per agent role with least-privilege scopes, and
->    enable the `apiAuth` entitlement on the tenant Growth OS runs under.
-> 3. Growth OS already enforces the scopes (Slice 3c-2, this repo) — no code
->    change needed there once the grants exist; just fill the `GROWTH_SYTADEL_*`
->    credentials and set `GROWTH_SYTADEL_AUTH=true`.
+> 1. Model an `AgentAuditEvent` (workspace, run id, actor: local executor +
+>    optional `sytadel_subject`/tenant, action type — e.g. run.started,
+>    run.completed, run.failed, fetch.performed, research.collected,
+>    brief.generated — timestamp, sanitized metadata). Append-only; never logs
+>    secrets or raw source content.
+> 2. Emit from the orchestrator/fetch/research at the right points. Keep it
+>    deterministic and failure-isolated (an audit write must not break a run;
+>    but a persisted run should have its audit rows).
+> 3. Add a `audit:list --run <id>` / `--workspace <slug>` CLI view.
+> 4. Tests: events emitted for happy path + failures; no secrets/content leak;
+>    ordering stable. Consider whether hash-chaining (cf. auth/billing audit
+>    chains in the suite) is worth it now or later.
 
-## Then (each its own slice, suite-touching — confirm scope first)
+## Then
 
-- **3c-3**: secrets to Vault (unlocks Reddit / Product Hunt connectors).
-- **3c-4**: agent-action audit emission to the unified timeline.
+- **3c-4 (suite side, later)**: forward agent-action audit to the suite's unified
+  timeline — touches `sytadel-suite`; confirm scope first.
 - **3c-5**: HITL approval gate (arrives with the first send/publish/spend
   capability).
+- **Operator, anytime**: bump the `auth-api` submodule pointer in `sytadel-suite`
+  so the suite records the merged scopes (meta-repo change — confirm first).
 
 ## Guardrail reminders (all slices)
 

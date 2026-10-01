@@ -1,14 +1,14 @@
 import http from 'node:http';
 import { AddressInfo } from 'node:net';
-import { AppConfig } from '../../src/config/configuration';
 import {
   ScopeDeniedError,
   SytadelAuthError,
+  SytadelIdentityConfig,
   SytadelIdentityService,
 } from '../../src/modules/identity/sytadel-identity.service';
 import { SYTADEL_SCOPES } from '../../src/modules/identity/scopes';
 
-type SytadelCfg = AppConfig['sytadel'];
+type SytadelCfg = SytadelIdentityConfig;
 
 const validToken = {
   accessToken: 'jwt.header.payload',

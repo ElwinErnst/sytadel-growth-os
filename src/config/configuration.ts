@@ -3,8 +3,11 @@ import { z } from 'zod';
 /**
  * Environment schema. Validated once at boot so a misconfigured process fails
  * loudly instead of surfacing as a confusing runtime error deep in a run.
- * Secrets (ANTHROPIC_API_KEY) come from the environment only — never from
- * source, prompts, or persisted rows.
+ *
+ * SECRETS are deliberately NOT part of this config — `ANTHROPIC_API_KEY` and
+ * `GROWTH_SYTADEL_CLIENT_SECRET` are read only through the SecretProvider seam
+ * (src/modules/secrets), so they never live on the config object that could be
+ * logged.
  */
 const envSchema = z.object({
   DB_HOST: z.string().min(1).default('localhost'),
@@ -14,7 +17,6 @@ const envSchema = z.object({
   DB_NAME: z.string().min(1).default('growth_os'),
 
   GROWTH_LLM_PROVIDER: z.enum(['anthropic', 'fixture']).default('anthropic'),
-  ANTHROPIC_API_KEY: z.string().optional(),
   GROWTH_LLM_MODEL: z.string().min(1).default('claude-sonnet-5'),
   GROWTH_LLM_MAX_TOKENS: z.coerce.number().int().positive().default(2048),
   GROWTH_LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
@@ -40,7 +42,6 @@ const envSchema = z.object({
   GROWTH_SYTADEL_TENANT_SLUG: z.string().optional(),
   GROWTH_SYTADEL_CLIENT_APP_ID: z.string().optional(),
   GROWTH_SYTADEL_SERVICE_ACCOUNT_ID: z.string().optional(),
-  GROWTH_SYTADEL_CLIENT_SECRET: z.string().optional(),
   GROWTH_SYTADEL_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
 })
   .refine(
@@ -50,14 +51,15 @@ const envSchema = z.object({
         env.GROWTH_SYTADEL_AUTH_URL &&
           env.GROWTH_SYTADEL_TENANT_SLUG &&
           env.GROWTH_SYTADEL_CLIENT_APP_ID &&
-          env.GROWTH_SYTADEL_SERVICE_ACCOUNT_ID &&
-          env.GROWTH_SYTADEL_CLIENT_SECRET,
+          env.GROWTH_SYTADEL_SERVICE_ACCOUNT_ID,
       ),
     {
+      // The client secret is validated at auth time (via SecretProvider), not
+      // here — secrets are not part of config.
       message:
         'GROWTH_SYTADEL_AUTH=true requires GROWTH_SYTADEL_AUTH_URL, ' +
-        'GROWTH_SYTADEL_TENANT_SLUG, GROWTH_SYTADEL_CLIENT_APP_ID, ' +
-        'GROWTH_SYTADEL_SERVICE_ACCOUNT_ID and GROWTH_SYTADEL_CLIENT_SECRET.',
+        'GROWTH_SYTADEL_TENANT_SLUG, GROWTH_SYTADEL_CLIENT_APP_ID and ' +
+        'GROWTH_SYTADEL_SERVICE_ACCOUNT_ID (client secret comes from the SecretProvider).',
     },
   );
 
@@ -71,7 +73,6 @@ export type AppConfig = {
   };
   llm: {
     provider: 'anthropic' | 'fixture';
-    apiKey: string | null;
     model: string;
     maxTokens: number;
     timeoutMs: number;
@@ -91,7 +92,6 @@ export type AppConfig = {
     tenantSlug: string | null;
     clientAppId: string | null;
     serviceAccountId: string | null;
-    clientSecret: string | null;
     timeoutMs: number;
   };
 };
@@ -108,7 +108,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     },
     llm: {
       provider: parsed.GROWTH_LLM_PROVIDER,
-      apiKey: parsed.ANTHROPIC_API_KEY?.trim() || null,
       model: parsed.GROWTH_LLM_MODEL,
       maxTokens: parsed.GROWTH_LLM_MAX_TOKENS,
       timeoutMs: parsed.GROWTH_LLM_TIMEOUT_MS,
@@ -128,7 +127,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       tenantSlug: parsed.GROWTH_SYTADEL_TENANT_SLUG ?? null,
       clientAppId: parsed.GROWTH_SYTADEL_CLIENT_APP_ID ?? null,
       serviceAccountId: parsed.GROWTH_SYTADEL_SERVICE_ACCOUNT_ID ?? null,
-      clientSecret: parsed.GROWTH_SYTADEL_CLIENT_SECRET ?? null,
       timeoutMs: parsed.GROWTH_SYTADEL_TIMEOUT_MS,
     },
   };

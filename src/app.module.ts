@@ -10,6 +10,7 @@ import { BriefsModule } from './modules/briefs/briefs.module';
 import { RunsModule } from './modules/runs/runs.module';
 import { FetchModule } from './modules/fetch/fetch.module';
 import { ResearchModule } from './modules/research/research.module';
+import { SecretsModule } from './modules/secrets/secrets.module';
 import { GrowthCli } from './cli/growth-cli.service';
 
 /**
@@ -20,6 +21,7 @@ import { GrowthCli } from './cli/growth-cli.service';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    SecretsModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
