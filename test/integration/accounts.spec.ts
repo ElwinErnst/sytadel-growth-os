@@ -1,8 +1,8 @@
 import { AccountFitTier, AuditAction } from '../../src/common/enums';
-import { ReferenceIntegrityError } from '../../src/common/errors';
 import { ScopeDeniedError } from '../../src/modules/identity/sytadel-identity.service';
 import { STEP_MARKER } from '../../src/modules/llm/providers/fixture.provider';
 import {
+  InvalidAccountError,
   NoAccountsError,
   NoIcpError,
 } from '../../src/modules/accounts/account.service';
@@ -106,12 +106,14 @@ describe('Accounts + ICP-fit scoring (integration)', () => {
         name: 'Agentify',
         notes: 'multi-tenant SaaS shipping AI agents',
       });
-      const [assessment] = await t.accounts.score(ws.id, 'local-cli');
-      expect(assessment!.accountId).toBe(account.id);
-      expect(assessment!.fitScore).toBeCloseTo(0.8, 5);
-      expect(assessment!.tier).toBe(AccountFitTier.STRONG);
-      expect(assessment!.matchedSegments).toEqual(['AI-agent startups']);
-      expect(assessment!.icpVersion).toBe(1);
+      const [o] = await t.accounts.score(ws.id, 'local-cli');
+      expect(o!.ok).toBe(true);
+      const assessment = o!.assessment!;
+      expect(assessment.accountId).toBe(account.id);
+      expect(assessment.fitScore).toBeCloseTo(0.8, 5);
+      expect(assessment.tier).toBe(AccountFitTier.STRONG);
+      expect(assessment.matchedSegments).toEqual(['AI-agent startups']);
+      expect(assessment.icpVersion).toBe(1);
 
       const audit = await t.audit.listByWorkspace(ws.id, { limit: 50, offset: 0 });
       expect(audit.map((e) => e.action)).toContain(AuditAction.ACCOUNT_SCORED);
@@ -120,14 +122,29 @@ describe('Accounts + ICP-fit scoring (integration)', () => {
     }
   });
 
-  it('rejects an invented segment reference', async () => {
+  it('records an invented segment reference as a failed outcome (batch not aborted)', async () => {
     const t = await createTestApp(allSteps(icpJson(), assessmentJson(0.6, [99])));
     try {
       const ws = await workspaceWithIcp(t);
       await t.accounts.add({ workspaceId: ws.id, name: 'X', notes: 'n' });
-      await expect(t.accounts.score(ws.id, 'local-cli')).rejects.toBeInstanceOf(
-        ReferenceIntegrityError,
-      );
+      const [o] = await t.accounts.score(ws.id, 'local-cli');
+      expect(o!.ok).toBe(false);
+      expect(o!.error).toContain('ReferenceIntegrityError');
+    } finally {
+      await t.close();
+    }
+  });
+
+  it('rejects adding an account with a blank name or blank notes', async () => {
+    const t = await createTestApp(allSteps(icpJson(), assessmentJson(0.8, [1])));
+    try {
+      const ws = await t.workspaces.getOrCreate(uniqueSlug());
+      await expect(
+        t.accounts.add({ workspaceId: ws.id, name: '   ', notes: 'ok' }),
+      ).rejects.toBeInstanceOf(InvalidAccountError);
+      await expect(
+        t.accounts.add({ workspaceId: ws.id, name: 'Acme', notes: '  ' }),
+      ).rejects.toBeInstanceOf(InvalidAccountError);
     } finally {
       await t.close();
     }
