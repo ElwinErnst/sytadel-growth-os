@@ -55,6 +55,7 @@ export const STEP_MARKER = {
   analysis: 'GROWTH_STEP:ANALYSIS',
   brief: 'GROWTH_STEP:BRIEF',
   icp: 'GROWTH_STEP:ICP',
+  account: 'GROWTH_STEP:ACCOUNT',
 } as const;
 
 /**
@@ -115,6 +116,15 @@ const defaultScript: FixtureScript = (req) => {
       recommendedBeachhead: '[fixture] Configure ANTHROPIC_API_KEY and re-run.',
       hypothesesToValidate: ['[fixture] placeholder hypothesis'],
       uncertainty: ['[fixture] produced offline; treat as placeholder.'],
+    });
+  }
+  if (req.system.includes(STEP_MARKER.account)) {
+    return JSON.stringify({
+      fitScore: 0.2,
+      matchedSegmentRefs: [],
+      rationale: '[fixture] Placeholder assessment produced offline.',
+      gaps: ['[fixture] Run with a real provider for a genuine assessment.'],
+      recommendedNextStep: '[fixture] Configure ANTHROPIC_API_KEY and re-run.',
     });
   }
   throw new LlmProviderError('Fixture: unrecognized step marker in prompt', false);

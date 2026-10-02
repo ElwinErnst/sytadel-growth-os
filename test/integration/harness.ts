@@ -16,6 +16,7 @@ import { ResearchService } from '../../src/modules/research/research.service';
 import { AuditService } from '../../src/modules/audit/audit.service';
 import { ApprovalService } from '../../src/modules/approvals/approval.service';
 import { IcpService } from '../../src/modules/icp/icp.service';
+import { AccountService } from '../../src/modules/accounts/account.service';
 import { HttpFetcher } from '../../src/modules/fetch/http-fetcher';
 import {
   ScopeDeniedError,
@@ -36,6 +37,7 @@ export type TestApp = {
   audit: AuditService;
   approvals: ApprovalService;
   icp: IcpService;
+  accounts: AccountService;
   close: () => Promise<void>;
 };
 
@@ -77,6 +79,7 @@ export async function createTestApp(
     audit: app.get(AuditService),
     approvals: app.get(ApprovalService),
     icp: app.get(IcpService),
+    accounts: app.get(AccountService),
     close: () => app.close(),
   };
 }

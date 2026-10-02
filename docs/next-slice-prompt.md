@@ -27,22 +27,23 @@ The full governance architecture is fixed in
 **3c-5 HITL approval gate ✅**. **Governance track (3c) is core complete.** No
 `sytadel-suite` PR is opened without confirming scope first.
 
-> **Also done:** Slice 5 — ICP Agent (versioned ICP synthesized from a
-> workspace's signals; `icp:generate`/`icp:show`; scope-gated + audited).
+> **Also done:** Slice 5 — ICP Agent; Slice 6 (core) — Account Research +
+> ICP-fit scoring (`account:add/list/score/show`; grounded, scope-gated,
+> audited). The suite now tracks Growth OS as a **submodule** (public repo,
+> PolyForm Strict).
 
 ## Recommended next: pick a direction
 
-Governance core is done and ICP has shipped. Reasonable next directions:
-
-1. **Product: Slice 6 — Lead Generation + Account Research** (local parts first).
-   Model companies/accounts and research them against the ICP. The research
-   fetches MUST go through the hardened fetcher (SSRF) and the research:fetch
-   scope; keep contacts/outbound OUT (outbound is HITL-gated, later). Start with
-   the local data model + scoring against the latest `IcpProfile`; defer any
-   fetch-heavy enrichment to a follow-up.
-2. **Product: Slice 7 — Qualification/scoring** → the funnel report
-   ("N analyzed / M match ICP / K strong signals…"). Pure read/analysis; natural
-   companion to ICP.
+1. **Slice 6b — automated lead discovery/enrichment** (local → fetch). Use the
+   existing connectors/hardened fetcher (+ `research:fetch` scope) to discover
+   and enrich candidate accounts instead of hand-entering notes. Still no
+   contacts, no outbound. Each enriched fact must be evidence-backed.
+2. **Slice 7 — Qualification funnel report** (local, read-only). Aggregate the
+   latest account assessments into the funnel view ("N accounts / M strong / K
+   medium…") against the latest ICP. Natural companion to Slice 6.
+3. **Slice 8 — Customer Discovery** (local). Structured interview capture
+   (problem/company/role/current_solution/pain/budget/urgency/competitor/
+   feature/objection) + pattern analysis.
 3. **Governance finish (operator/suite-touching — confirm scope first):**
    - Provision one `auth-api` ServiceAccount per agent role + enable the tenant's
      `apiAuth`, then set `GROWTH_SYTADEL_*` + `GROWTH_SYTADEL_AUTH=true`.
