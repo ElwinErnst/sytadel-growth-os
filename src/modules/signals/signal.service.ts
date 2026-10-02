@@ -80,4 +80,16 @@ export class SignalService {
   async countByWorkspace(workspaceId: string): Promise<number> {
     return this.repo.count({ where: { workspaceId } });
   }
+
+  /** Most-recent signals across a workspace (for cross-run synthesis like ICP). */
+  async listByWorkspace(
+    workspaceId: string,
+    limit: number,
+  ): Promise<MarketSignal[]> {
+    return this.repo.find({
+      where: { workspaceId },
+      order: { createdAt: 'DESC', id: 'ASC' },
+      take: limit,
+    });
+  }
 }

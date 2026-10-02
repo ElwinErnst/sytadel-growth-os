@@ -11,6 +11,7 @@ import { FetchService } from '../modules/fetch/fetch.service';
 import { ResearchService } from '../modules/research/research.service';
 import { AuditService } from '../modules/audit/audit.service';
 import { ApprovalService } from '../modules/approvals/approval.service';
+import { IcpService } from '../modules/icp/icp.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import {
   ApprovalAction,
@@ -58,6 +59,8 @@ Commands:
   approval:approve --id <id> [--by <who>]
   approval:deny    --id <id> [--by <who>]
   brief:deliver  --approval <id>   (requires an APPROVED approval; delivery is simulated)
+  icp:generate   --workspace <slug> [--executor <id>]
+  icp:show       --workspace <slug> [--version <n>]
   brief:export   --run <id> --out <path>
 
 Notes:
@@ -82,6 +85,7 @@ export class GrowthCli {
     private readonly research: ResearchService,
     private readonly audit: AuditService,
     private readonly approvals: ApprovalService,
+    private readonly icp: IcpService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -124,6 +128,10 @@ export class GrowthCli {
           return await this.briefRequestDelivery(args);
         case 'brief:deliver':
           return await this.briefDeliver(args);
+        case 'icp:generate':
+          return await this.icpGenerate(args);
+        case 'icp:show':
+          return await this.icpShow(args);
         case 'run:show':
           return await this.runShow(args);
         case 'run:resume':
@@ -352,6 +360,38 @@ export class GrowthCli {
         `  run=${b.runId}\t${b.createdAt.toISOString()}\t${b.title}`,
       );
     }
+    return 0;
+  }
+
+  private async icpGenerate(args: ParsedArgs): Promise<number> {
+    const slug = requireOne(args, 'workspace');
+    const workspace = await this.workspaces.getOrCreate(slug);
+    const profile = await this.icp.generate(
+      workspace.id,
+      getOne(args, 'executor') ?? 'local-cli',
+    );
+    console.log(`ICP generated: ${profile.title}`);
+    console.log(
+      `  workspace: ${slug}   version: ${profile.version}   from ${profile.sourceSignalCount} signal(s)`,
+    );
+    console.log(`  show it: icp:show --workspace ${slug}`);
+    return 0;
+  }
+
+  private async icpShow(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const versionRaw = getOne(args, 'version');
+    const profile = versionRaw
+      ? await this.icp.getVersion(ws.id, Number(versionRaw))
+      : await this.icp.getLatest(ws.id);
+    if (!profile) {
+      console.error(
+        `No ICP for ${ws.slug}${versionRaw ? ` version ${versionRaw}` : ''}. Run icp:generate.`,
+      );
+      return 1;
+    }
+    console.log(profile.bodyMarkdown);
     return 0;
   }
 

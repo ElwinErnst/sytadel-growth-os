@@ -19,3 +19,6 @@ exports/
 # OS / editor
 .DS_Store
 *.log
+
+# Tooling caches
+.atl/

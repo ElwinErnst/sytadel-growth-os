@@ -107,6 +107,7 @@ export enum AuditAction {
   APPROVAL_APPROVED = 'approval.approved',
   APPROVAL_DENIED = 'approval.denied',
   BRIEF_DELIVERED = 'brief.delivered',
+  ICP_GENERATED = 'icp.generated',
 }
 
 /**
