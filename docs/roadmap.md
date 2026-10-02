@@ -1,10 +1,17 @@
-# Sytadel Growth OS — Roadmap
+# Sytadel Growth OS — Internal Customer-Zero Roadmap
 
-**North star:** move 80–90% of repetitive go-to-market work (research, leads,
-marketing, CRM, customer discovery) to AI agents, leaving the founder with
-product vision, key relationships, strategy, and capital allocation.
+**Sytadel's product north star:** build a secure PaaS/control plane for teams
+building software and automations with AI agents. Sytadel aims to abstract
+identity and tenancy, policy, secrets and Vault, tamper-evident audit/notary,
+Billing and entitlements, agent identity, MCP, and human approval controls so
+customers can focus on business rules. The current suite is a foundation, not a
+complete hosted agent runtime.
 
-**Operating principle:** *agents present evidence; the human decides strategy.*
+**Growth OS's internal north star:** move repetitive go-to-market work toward
+AI agents, while the founder remains the sole HITL for consequential decisions
+and external actions—including send, publish, and spend.
+
+**Operating principle:** *agents gather evidence and prepare recommendations; the founder alone approves consequential decisions and external actions.*
 Every step that touches the outside world (fetch, send, publish, spend) is
 **gated** — read/evidence phases first, then human-in-the-loop (HITL) actions,
 and finally actions authorized by Sytadel's own policy plane.
@@ -114,7 +121,7 @@ Human-in-the-loop authorization · Agent identity vs service accounts.* A single
 real question can fan out to article + LinkedIn + X + Reddit/HN + newsletter +
 landing (all drafts).
 
-## Track G — Governance / Dogfooding (parallel, enters at Slice 3)
+## Track G — Governance / Customer-zero dogfooding (parallel, enters at Slice 3)
 
 The strategic differentiator: the agents running Sytadel's growth are themselves
 **governed by Sytadel's own control plane**. As soon as an agent acts on the
@@ -133,10 +140,14 @@ world, the local operator identity is no longer sufficient:
 - **Audit:** agent actions emitted to the suite's unified audit timeline.
 - **HITL:** every sensitive action (send/publish/spend) requires human approval.
 
-**Endgame:** *"Sytadel is a company operated by AI agents secured by Sytadel."*
-This is simultaneously the reference implementation of a **Sytadel Agent Control
-Plane** (Identity + Secrets + Policy + Audit + HITL + Billing) — a product for
-companies deploying AI workers.
+**Customer-zero outcome:** use Growth OS internally to validate how Sytadel's
+control-plane capabilities should support teams building with AI agents. The
+product direction includes Identity + Secrets/Vault + Policy + Audit/Notary +
+HITL + Billing/entitlements + Agent Identity + MCP. Growth OS is Sytadel Labs'
+internal GTM engine, not a customer-facing product; the hosted runtime and the
+complete integrated platform remain target capabilities until implemented and
+verified. The founder is the sole HITL for consequential decisions and external
+actions.
 
 ## Guardrails carried across every slice
 

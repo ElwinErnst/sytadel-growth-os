@@ -1,16 +1,18 @@
 # Sytadel Growth OS
 
-**A private, evidence-driven market-research and growth workbench for Sytadel.**
-It turns operator-supplied material into structured, traceable market signals and
-an evidence-backed **Founder Brief** — so strategy decisions rest on facts and
-clearly-labeled hypotheses, not vibes.
+**Sytadel Labs' internal customer-zero and go-to-market engine** for the secure
+agentic PaaS Sytadel is building.
+Growth OS turns supplied and collected material into structured, traceable market
+signals and an evidence-backed **Founder Brief**—so the founder can make
+consequential product, commercial, and external-action decisions from evidence.
 
-The guiding principle across everything here: **agents present evidence; the human
-decides strategy.** Every claim in a brief traces back to a piece of evidence you
-supplied, and facts, hypotheses, recommendations, and uncertainty are always kept
-separate.
+The guiding principle across everything here: **agents present evidence; the
+founder decides strategy.** Every claim in a brief traces back to a piece of
+evidence you supplied, and facts, hypotheses, recommendations, and uncertainty
+are always kept separate. The founder is the sole HITL for consequential
+decisions and external actions.
 
-> **Status:** CLI-first foundation, actively built in small slices. Working today:
+> **Status:** Internal CLI-first foundation, actively built in small slices. Working today:
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
 > hardened web fetch, a research-source registry with connectors, opt-in Sytadel
 > identity with scope enforcement, a `SecretProvider` seam, an append-only
@@ -22,16 +24,31 @@ separate.
 
 ## Why this exists
 
-Sytadel's go-to-market work — researching competitors, finding segments, building
-an ICP, analyzing feedback — is repetitive and evidence-heavy. Growth OS is the
-foundation for moving that work to AI agents **without** losing rigor or control:
-the agents gather and structure evidence; the founder makes the calls.
+Sytadel is being built as a secure PaaS and control plane for teams building
+software and automations with AI agents. Its target is to abstract identity and
+tenancy, policy, secrets and Vault, tamper-evident audit/notary, Billing and
+entitlements, agent identity, MCP, and human approval controls so customers can
+focus on business rules. The current Sytadel Suite provides working components;
+it is not yet a complete hosted agent runtime.
 
-Longer term this grows into a multi-agent "Growth AI" (research → signals →
+Growth OS is Sytadel Labs' **internal customer-zero and go-to-market engine**,
+not a Sytadel customer product. It helps the founder research the market,
+validate hypotheses, and manage growth using the same control-plane direction
+Sytadel intends to make available to external teams.
+
+Sytadel Labs' go-to-market work—researching competitors, finding segments,
+building an ICP, and analyzing feedback—is repetitive and evidence-heavy. Growth
+OS moves that work toward AI agents **without** losing rigor or control: agents
+gather and structure evidence, while the founder remains the sole human
+approver for consequential decisions and external actions (such as sending,
+publishing, or spending).
+
+Longer term this grows into an internal multi-agent "Growth AI" (research → signals →
 experiments → customers → feedback → new hypotheses), where each agent is
-**governed by Sytadel's own control plane** (identity, policy, secrets, audit,
-human-in-the-loop) — dogfooding Sytadel as *"a company operated by AI agents
-secured by Sytadel."* See the [roadmap](docs/roadmap.md) and
+**governed by Sytadel's own control-plane capabilities** (identity, policy,
+secrets, audit, and human approval)—dogfooding the product direction internally.
+This is an internal operating model, not a claim that Sytadel or Growth OS is a
+customer-available hosted agent runtime. See the [roadmap](docs/roadmap.md) and
 [ADR 0002](docs/adr/0002-governance.md).
 
 This slice deliberately stays small, deterministic, and safe so that the

@@ -4,6 +4,21 @@ This document records what actually exists in `sytadel-suite` today (verified by
 inspection on 2026-09-20), what Growth OS can reuse, and what needs to be built
 before deeper integration. It is the contract for how Growth OS talks to Sytadel.
 
+## Product and customer-zero context
+
+Sytadel is being built as a secure PaaS and control plane for teams creating
+software and automations with AI agents. The target platform should abstract
+identity and tenancy, policy, secrets/Vault, tamper-evident audit and notary,
+Billing and entitlements, agent identity, MCP, and human approval controls so
+customers can focus on business rules. The current suite has working services
+and capabilities, but it is not a complete hosted agent runtime.
+
+Growth OS is Sytadel Labs' **internal customer-zero and go-to-market engine**;
+it is not part of the customer product. Its local approval flow does not imply a
+generic Sytadel-wide business-action HITL service. The founder is the sole human
+approver for consequential decisions and external actions in this operating
+model.
+
 > Rule: integrate **only** through verified public APIs. Never import Sytadel
 > internal code or query its databases directly.
 
@@ -41,9 +56,10 @@ These were checked and are **absent** today. Do not assume them:
   `usage:write/read`, `webhooks:manage`, `billing:read`. There is no
   `research:*`, `leads:*`, `outreach:*`, or `content:*`. Adding any requires a PR
   to that allowlist (unknown scopes are rejected at key creation, by design).
-- **A generic secrets manager**, **generic agent runtime**, **generic
+- **A generic secrets manager**, **hosted agent runtime**, **generic
   business-action approval (HITL) system**, or a **universal audit-ingestion
-  endpoint**.
+  endpoint**. These are gaps relative to the target PaaS/control plane, not
+  shipped customer capabilities.
 
 ## Consequence for Growth OS
 
