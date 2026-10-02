@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Sytadel Growth OS — private market research and growth workbench. CLI-first: manual evidence → structured signals → Founder Brief.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Strict-1.0.0",
   "engines": {
     "node": ">=20"
   },

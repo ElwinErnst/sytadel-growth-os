@@ -359,4 +359,5 @@ install → typecheck → build → migrate → test with the fixture provider.
 
 ## License
 
-Apache-2.0. See [`LICENSE`](LICENSE).
+PolyForm Strict License 1.0.0 — source-available, noncommercial, all rights
+reserved (matches the Sytadel suite). See [`LICENSE`](LICENSE).
