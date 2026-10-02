@@ -108,6 +108,17 @@ export enum AuditAction {
   APPROVAL_DENIED = 'approval.denied',
   BRIEF_DELIVERED = 'brief.delivered',
   ICP_GENERATED = 'icp.generated',
+  ACCOUNT_SCORED = 'account.scored',
+}
+
+/**
+ * ICP-fit tier of an account, derived deterministically from the fit score
+ * (not chosen by the model): strong ≥ 0.7, medium ≥ 0.4, else weak.
+ */
+export enum AccountFitTier {
+  STRONG = 'strong',
+  MEDIUM = 'medium',
+  WEAK = 'weak',
 }
 
 /**

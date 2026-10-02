@@ -92,7 +92,7 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 | Research | **3c ✅** | **Governance** (designed in [ADR 0002](adr/0002-governance.md)) — core complete: **3c-1 identity ✅** · **3c-2 scope enforcement ✅** (Growth-OS side + `auth-api` scopes allowlist merged; SA provisioning pending) · **3c-3 SecretProvider seam ✅** (env-backed) · **3c-4 agent-action audit ✅** (append-only, local) · **3c-5 HITL approval gate ✅** (propose→approve→execute, no autonomous side effects; proven with a simulated delivery) | Fetch → **Governance track (core complete)** |
 | Research | 4 ⏳ | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals. _Not started — deprioritized after 3b in favor of the governance track; still pending._ | Fetch |
 | **ICP & Opportunity** | **5 ✅** | **ICP Agent**: versioned ICP synthesized from a workspace's signals (segments/pains grounded in signal ids), via `icp:generate`/`icp:show`; scope-gated + audited. *Shipped.* | None |
-| ICP | 6 | **Lead Generation + Account Research**: companies & contacts, each evidence-backed | Fetch |
+| ICP | **6 (core) ✅** | **Account Research**: register candidate companies (operator notes) + ICP-fit scoring (grounded in ICP segments, tier from score). *Shipped.* Automated lead discovery/enrichment (Fetch) + contacts = 6b, pending. | None (6b: Fetch) |
 | ICP | 7 | **Qualification / scoring** vs ICP → the funnel report ("N analyzed / M ICP / K strong…") | None |
 | **Discovery** | 8 | **Customer Discovery**: structured interview capture + pattern analysis (see schema below) | None |
 | **Marketing** | 9 | **Content / SEO**: one question → drafts for article/LinkedIn/X/HN/newsletter/landing. Human publishes | HITL to publish |

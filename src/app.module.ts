@@ -14,6 +14,7 @@ import { SecretsModule } from './modules/secrets/secrets.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { IcpModule } from './modules/icp/icp.module';
+import { AccountsModule } from './modules/accounts/accounts.module';
 import { GrowthCli } from './cli/growth-cli.service';
 
 /**
@@ -49,6 +50,7 @@ import { GrowthCli } from './cli/growth-cli.service';
     AuditModule,
     ApprovalsModule,
     IcpModule,
+    AccountsModule,
   ],
   providers: [GrowthCli],
 })

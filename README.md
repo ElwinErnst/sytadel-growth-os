@@ -16,8 +16,9 @@ decisions and external actions.
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
 > hardened web fetch, a research-source registry with connectors, opt-in Sytadel
 > identity with scope enforcement, a `SecretProvider` seam, an append-only
-> agent-action audit trail, a human-in-the-loop approval gate, and a versioned
-> ICP synthesizer. **Not yet:** HTTP data endpoints, outbound messaging, or any
+> agent-action audit trail, a human-in-the-loop approval gate, a versioned ICP
+> synthesizer, and account ICP-fit scoring. **Not yet:** automated lead discovery,
+> contacts, HTTP data endpoints, outbound messaging, or any
 > autonomous side effect. Full plan in [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
@@ -103,6 +104,9 @@ manual or fetched evidence  →  structured signals  →  Founder Brief
   citing its evidence), then **generate a Founder Brief** from those signals.
 - **Synthesize a versioned ICP** (Ideal Customer Profile) across a workspace's
   signals — segments and pains grounded in the signals they rest on.
+- **Score candidate accounts** (operator-supplied company profiles) against the
+  latest ICP — a fit score + tier, matched segments (grounded in the ICP), gaps,
+  and a recommended next step. No automated discovery or contacts yet (later).
 - **Inspect & export** — list workspaces/evidence/runs/signals/briefs; show or
   export a brief as Markdown.
 - **Opt-in Sytadel identity** — attribute runs to an authenticated `auth-api`
@@ -123,6 +127,12 @@ exposed before full authentication and authorization exist.
 | `RunEvidence` | The evidence set supplied to a run (what its signals may cite), in operator order. |
 | `MarketSignal` | A fact/hypothesis claim citing one evidence item; deduped per run by fingerprint. |
 | `FounderBrief` | One per run; structured content + rendered Markdown, grounded only in persisted signals. |
+| `IcpProfile` | Versioned Ideal Customer Profile synthesized from a workspace's signals (segments/pains grounded in signal ids). |
+| `Account` | A candidate company with operator-supplied notes; dedup per workspace by normalized name. |
+| `AccountAssessment` | An ICP-fit assessment of an account (score, derived tier, matched segments, rationale, gaps). |
+
+> Governance also persists `AgentAuditEvent` (append-only action trail) and
+> `ApprovalRequest` (HITL gate).
 
 ## Architecture & principles
 
@@ -226,6 +236,10 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 | `brief:deliver --approval <id>` | Execute a delivery — only if APPROVED (delivery is **simulated**). |
 | `icp:generate --workspace <slug>` | Synthesize a versioned ICP from the workspace's signals. |
 | `icp:show --workspace <slug>` | Print the latest (or `--version <n>`) ICP (Markdown). |
+| `account:add --workspace <slug> --name <n> --notes <text>` | Register a candidate company (operator-supplied profile). |
+| `account:list --workspace <slug>` | List accounts with their latest ICP-fit tier/score. |
+| `account:score --workspace <slug>` | Assess accounts against the latest ICP (grounded; `--account <id>` for one). |
+| `account:show --workspace <slug> --account <id>` | Show an account's latest assessment. |
 
 **`analyze` flags:** `--workspace <slug>` (required); either `--evidence <id> [<id>…]`
 (multiple ids analyze several sources in one run) or an inline `--file <path>
@@ -342,6 +356,7 @@ src/
     audit/             # append-only agent-action audit trail
     approvals/         # human-in-the-loop approval gate
     icp/               # ICP synthesis from signals (versioned, grounded)
+    accounts/          # candidate companies + ICP-fit scoring
 docs/
   adr/                 # architecture decision records
   integration/         # verified Sytadel integration surface

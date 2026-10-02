@@ -12,6 +12,7 @@ import { ResearchService } from '../modules/research/research.service';
 import { AuditService } from '../modules/audit/audit.service';
 import { ApprovalService } from '../modules/approvals/approval.service';
 import { IcpService } from '../modules/icp/icp.service';
+import { AccountService } from '../modules/accounts/account.service';
 import { AgentRun } from '../modules/runs/entities/agent-run.entity';
 import {
   ApprovalAction,
@@ -61,6 +62,10 @@ Commands:
   brief:deliver  --approval <id>   (requires an APPROVED approval; delivery is simulated)
   icp:generate   --workspace <slug> [--executor <id>]
   icp:show       --workspace <slug> [--version <n>]
+  account:add    --workspace <slug> --name <name> (--notes <text> | --notes-file <path>) [--domain <d>]
+  account:list   --workspace <slug>
+  account:score  --workspace <slug> [--account <id>]
+  account:show   --workspace <slug> --account <id>
   brief:export   --run <id> --out <path>
 
 Notes:
@@ -86,6 +91,7 @@ export class GrowthCli {
     private readonly audit: AuditService,
     private readonly approvals: ApprovalService,
     private readonly icp: IcpService,
+    private readonly accounts: AccountService,
   ) {}
 
   async run(argv: string[]): Promise<number> {
@@ -132,6 +138,14 @@ export class GrowthCli {
           return await this.icpGenerate(args);
         case 'icp:show':
           return await this.icpShow(args);
+        case 'account:add':
+          return await this.accountAdd(args);
+        case 'account:list':
+          return await this.accountList(args);
+        case 'account:score':
+          return await this.accountScore(args);
+        case 'account:show':
+          return await this.accountShow(args);
         case 'run:show':
           return await this.runShow(args);
         case 'run:resume':
@@ -360,6 +374,76 @@ export class GrowthCli {
         `  run=${b.runId}\t${b.createdAt.toISOString()}\t${b.title}`,
       );
     }
+    return 0;
+  }
+
+  private async accountAdd(args: ParsedArgs): Promise<number> {
+    const slug = requireOne(args, 'workspace');
+    const workspace = await this.workspaces.getOrCreate(slug);
+    const name = requireOne(args, 'name');
+    // Notes: inline --notes, or read from --notes-file.
+    const notesFile = getOne(args, 'notes-file');
+    const notes = notesFile
+      ? await readFile(notesFile, 'utf8')
+      : (getOne(args, 'notes') ?? '');
+    const account = await this.accounts.add({
+      workspaceId: workspace.id,
+      name,
+      notes,
+      domain: getOne(args, 'domain') ?? null,
+    });
+    console.log(`Account: ${account.id}`);
+    console.log(`  ${account.name}${account.domain ? ` (${account.domain})` : ''}`);
+    return 0;
+  }
+
+  private async accountList(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const rows = await this.accounts.list(ws.id);
+    console.log(`Accounts in ${ws.slug} (${rows.length}):`);
+    for (const a of rows) {
+      const latest = await this.accounts.latestAssessment(a.id);
+      const fit = latest
+        ? `${latest.tier} ${latest.fitScore.toFixed(2)}`
+        : 'unscored';
+      console.log(`  ${a.id}\t${a.name}\t${a.domain ?? '-'}\t[${fit}]`);
+    }
+    return 0;
+  }
+
+  private async accountScore(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const results = await this.accounts.score(
+      ws.id,
+      getOne(args, 'executor') ?? 'local-cli',
+      getOne(args, 'account'),
+    );
+    console.log(`Scored ${results.length} account(s) in ${ws.slug}:`);
+    for (const r of results) {
+      console.log(
+        `  ${r.accountId}\t${r.tier}\t${r.fitScore.toFixed(2)}\tsegments=[${r.matchedSegments.join(', ')}]`,
+      );
+    }
+    return 0;
+  }
+
+  private async accountShow(args: ParsedArgs): Promise<number> {
+    const ws = await this.resolveWorkspace(args);
+    if (!ws) return 1;
+    const account = await this.accounts.getById(ws.id, requireOne(args, 'account'));
+    const a = await this.accounts.latestAssessment(account.id);
+    console.log(`Account ${account.name}${account.domain ? ` (${account.domain})` : ''}`);
+    if (!a) {
+      console.log('  (not scored yet — run account:score)');
+      return 0;
+    }
+    console.log(`  fit: ${a.tier} ${a.fitScore.toFixed(2)}   (vs ICP v${a.icpVersion})`);
+    console.log(`  segments: ${a.matchedSegments.join(', ') || '(none)'}`);
+    console.log(`  rationale: ${a.rationale}`);
+    if (a.gaps.length) console.log(`  gaps: ${a.gaps.join('; ')}`);
+    console.log(`  next: ${a.recommendedNextStep}`);
     return 0;
   }
 
