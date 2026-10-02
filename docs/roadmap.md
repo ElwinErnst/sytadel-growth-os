@@ -84,7 +84,7 @@ needs SSRF controls + Governance), **HITL** (human approves the action).
 | Research | **3b-2 ✅** | Typed connectors on the same contract: `hacker_news` (Algolia API) + `github_releases` (public REST), keyless, JSON→digest. Reddit/Product Hunt deferred (need keys → Vault/3c). *Shipped.* | Fetch |
 | Research | 3c | **Governance** (designed in [ADR 0002](adr/0002-governance.md)): **3c-1 identity ✅** · **3c-2 scope enforcement ✅** (Growth-OS side + `auth-api` scopes allowlist merged; SA provisioning pending) · **3c-3 SecretProvider seam ✅** (env-backed) · **3c-4 agent-action audit ✅** (append-only, local) · **3c-5 HITL approval gate ✅** (propose→approve→execute, no autonomous side effects; proven with a simulated delivery) | Fetch → **Governance track (core complete)** |
 | Research | 4 | **Competitive Intelligence**: watch Auth0/Clerk/Stytch/WorkOS/Okta; diff over time → signals | Fetch |
-| **ICP & Opportunity** | 5 | **ICP Agent**: refine ideal customer from signals + the concrete hypotheses above | None |
+| **ICP & Opportunity** | **5 ✅** | **ICP Agent**: versioned ICP synthesized from a workspace's signals (segments/pains grounded in signal ids), via `icp:generate`/`icp:show`; scope-gated + audited. *Shipped.* | None |
 | ICP | 6 | **Lead Generation + Account Research**: companies & contacts, each evidence-backed | Fetch |
 | ICP | 7 | **Qualification / scoring** vs ICP → the funnel report ("N analyzed / M ICP / K strong…") | None |
 | **Discovery** | 8 | **Customer Discovery**: structured interview capture + pattern analysis (see schema below) | None |
@@ -151,11 +151,11 @@ companies deploying AI workers.
 
 ## Status
 
-- **Slices 1 → 3c-5: shipped** (this repo). **The Governance track (3c) is core
-  complete**: identity, scope enforcement, secret seam, audit, and the HITL gate
-  all landed. The `auth-api` allowlist PR is **merged** (auth-api #19). What
-  remains is operator/suite work (not new Growth OS features): provision one SA
-  per agent role + tenant `apiAuth`; bump the `auth-api` submodule pointer in
-  `sytadel-suite`; forward the audit trail to the unified timeline. Beyond
-  governance, the next product tracks are ICP (Slice 5) and the rest of the
-  Growth AI roadmap above. See `docs/next-slice-prompt.md`.
+- **Slices 1 → 3c-5 and 5 (ICP): shipped** (this repo). **The Governance track
+  (3c) is core complete**: identity, scope enforcement, secret seam, audit, and
+  the HITL gate all landed. The `auth-api` allowlist PR is **merged** (auth-api
+  #19). Remaining governance work is operator/suite (not new Growth OS features):
+  provision one SA per agent role + tenant `apiAuth`; bump the `auth-api`
+  submodule pointer in `sytadel-suite`; forward the audit trail to the unified
+  timeline. On the product side, the next track is **Lead Generation + Account
+  Research (Slice 6)**. See `docs/next-slice-prompt.md`.

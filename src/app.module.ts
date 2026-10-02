@@ -13,6 +13,7 @@ import { ResearchModule } from './modules/research/research.module';
 import { SecretsModule } from './modules/secrets/secrets.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { IcpModule } from './modules/icp/icp.module';
 import { GrowthCli } from './cli/growth-cli.service';
 
 /**
@@ -47,6 +48,7 @@ import { GrowthCli } from './cli/growth-cli.service';
     ResearchModule,
     AuditModule,
     ApprovalsModule,
+    IcpModule,
   ],
   providers: [GrowthCli],
 })

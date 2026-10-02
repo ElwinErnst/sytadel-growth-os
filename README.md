@@ -14,9 +14,9 @@ separate.
 > the core `evidence → signals → Founder Brief` workflow, multi-evidence runs,
 > hardened web fetch, a research-source registry with connectors, opt-in Sytadel
 > identity with scope enforcement, a `SecretProvider` seam, an append-only
-> agent-action audit trail, and a human-in-the-loop approval gate. **Not yet:**
-> HTTP data endpoints, outbound messaging, or any autonomous side effect. Full
-> plan in [`docs/roadmap.md`](docs/roadmap.md).
+> agent-action audit trail, a human-in-the-loop approval gate, and a versioned
+> ICP synthesizer. **Not yet:** HTTP data endpoints, outbound messaging, or any
+> autonomous side effect. Full plan in [`docs/roadmap.md`](docs/roadmap.md).
 
 ---
 
@@ -84,6 +84,8 @@ manual or fetched evidence  →  structured signals  →  Founder Brief
   hardened fetcher.
 - **Analyze** evidence into market/competition signals (schema-validated, each
   citing its evidence), then **generate a Founder Brief** from those signals.
+- **Synthesize a versioned ICP** (Ideal Customer Profile) across a workspace's
+  signals — segments and pains grounded in the signals they rest on.
 - **Inspect & export** — list workspaces/evidence/runs/signals/briefs; show or
   export a brief as Markdown.
 - **Opt-in Sytadel identity** — attribute runs to an authenticated `auth-api`
@@ -205,6 +207,8 @@ For a **real** analysis, set `GROWTH_LLM_PROVIDER=anthropic` and
 | `approval:list --workspace <slug>` | List approval requests (optional `--status`). |
 | `approval:approve --id <id>` / `approval:deny --id <id>` | Human decision on a pending approval. |
 | `brief:deliver --approval <id>` | Execute a delivery — only if APPROVED (delivery is **simulated**). |
+| `icp:generate --workspace <slug>` | Synthesize a versioned ICP from the workspace's signals. |
+| `icp:show --workspace <slug>` | Print the latest (or `--version <n>`) ICP (Markdown). |
 
 **`analyze` flags:** `--workspace <slug>` (required); either `--evidence <id> [<id>…]`
 (multiple ids analyze several sources in one run) or an inline `--file <path>
@@ -320,6 +324,7 @@ src/
     secrets/           # SecretProvider seam (env-backed; swap point for a real backend)
     audit/             # append-only agent-action audit trail
     approvals/         # human-in-the-loop approval gate
+    icp/               # ICP synthesis from signals (versioned, grounded)
 docs/
   adr/                 # architecture decision records
   integration/         # verified Sytadel integration surface

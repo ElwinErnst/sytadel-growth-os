@@ -27,16 +27,23 @@ The full governance architecture is fixed in
 **3c-5 HITL approval gate ✅**. **Governance track (3c) is core complete.** No
 `sytadel-suite` PR is opened without confirming scope first.
 
+> **Also done:** Slice 5 — ICP Agent (versioned ICP synthesized from a
+> workspace's signals; `icp:generate`/`icp:show`; scope-gated + audited).
+
 ## Recommended next: pick a direction
 
-The governance backbone is done; nothing with an external side effect runs without
-a human. Reasonable next directions (confirm with the operator):
+Governance core is done and ICP has shipped. Reasonable next directions:
 
-1. **Product: Slice 5 — ICP Agent** (local, no suite): refine an ideal-customer
-   profile from persisted signals + the concrete hypotheses in `docs/roadmap.md`
-   (B2B multi-tenant SaaS; AI-agent startups; software houses; regulated firms).
-   Pure read/analysis over existing signals — a natural next Growth OS feature.
-2. **Governance finish (operator/suite-touching — confirm scope first):**
+1. **Product: Slice 6 — Lead Generation + Account Research** (local parts first).
+   Model companies/accounts and research them against the ICP. The research
+   fetches MUST go through the hardened fetcher (SSRF) and the research:fetch
+   scope; keep contacts/outbound OUT (outbound is HITL-gated, later). Start with
+   the local data model + scoring against the latest `IcpProfile`; defer any
+   fetch-heavy enrichment to a follow-up.
+2. **Product: Slice 7 — Qualification/scoring** → the funnel report
+   ("N analyzed / M match ICP / K strong signals…"). Pure read/analysis; natural
+   companion to ICP.
+3. **Governance finish (operator/suite-touching — confirm scope first):**
    - Provision one `auth-api` ServiceAccount per agent role + enable the tenant's
      `apiAuth`, then set `GROWTH_SYTADEL_*` + `GROWTH_SYTADEL_AUTH=true`.
    - Bump the `auth-api` submodule pointer in `sytadel-suite` (meta-repo change).

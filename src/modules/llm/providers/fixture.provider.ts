@@ -54,6 +54,7 @@ function emptyUsage(): { inputTokens: number; outputTokens: number } {
 export const STEP_MARKER = {
   analysis: 'GROWTH_STEP:ANALYSIS',
   brief: 'GROWTH_STEP:BRIEF',
+  icp: 'GROWTH_STEP:ICP',
 } as const;
 
 /**
@@ -95,6 +96,25 @@ const defaultScript: FixtureScript = (req) => {
       uncertaintyAndCoverage: [
         '[fixture] This brief was produced offline; treat all content as placeholder.',
       ],
+    });
+  }
+  if (req.system.includes(STEP_MARKER.icp)) {
+    return JSON.stringify({
+      title: '[fixture] ICP (offline)',
+      summary: '[fixture] Placeholder ICP synthesized offline without a model.',
+      segments: [
+        {
+          name: '[fixture] Placeholder segment',
+          description: '[fixture] Derived from the offline signal.',
+          signalRefs: [1],
+        },
+      ],
+      idealCharacteristics: ['[fixture] placeholder characteristic'],
+      keyPains: [{ pain: '[fixture] placeholder pain', signalRefs: [1] }],
+      disqualifiers: ['[fixture] placeholder disqualifier'],
+      recommendedBeachhead: '[fixture] Configure ANTHROPIC_API_KEY and re-run.',
+      hypothesesToValidate: ['[fixture] placeholder hypothesis'],
+      uncertainty: ['[fixture] produced offline; treat as placeholder.'],
     });
   }
   throw new LlmProviderError('Fixture: unrecognized step marker in prompt', false);
