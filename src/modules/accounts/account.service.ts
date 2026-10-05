@@ -209,6 +209,11 @@ export class AccountService {
 
         outcomes.push({ ...base, ok: true, assessment: saved });
       } catch (err) {
+        // Only EXPECTED per-account failures are isolated as a failed outcome so
+        // the batch can continue. Unexpected errors (DB outage, programmer bugs)
+        // must NOT be masked as one account's failure — rethrow so the run
+        // aborts loudly instead of reporting a false partial success.
+        if (!isExpectedAccountError(err)) throw err;
         outcomes.push({ ...base, ok: false, error: sanitizeAccountError(err) });
       }
     }
@@ -216,14 +221,23 @@ export class AccountService {
   }
 }
 
-/** Safe per-account failure message (no payloads/secrets/source content). */
-function sanitizeAccountError(err: unknown): string {
-  if (
+/**
+ * Per-account failures we expect and isolate (a bad model output or an invented
+ * reference fails only that account). Anything else is systemic and must
+ * propagate so a real outage is never hidden behind a per-account outcome.
+ */
+function isExpectedAccountError(err: unknown): boolean {
+  return (
     err instanceof ReferenceIntegrityError ||
     err instanceof InvalidModelOutputError ||
     err instanceof LlmProviderError
-  ) {
-    return `${err.name}: ${err.message}`;
+  );
+}
+
+/** Safe per-account failure message (no payloads/secrets/source content). */
+function sanitizeAccountError(err: unknown): string {
+  if (isExpectedAccountError(err)) {
+    return `${(err as Error).name}: ${(err as Error).message}`;
   }
   return 'Account scoring failed: unexpected error';
 }
