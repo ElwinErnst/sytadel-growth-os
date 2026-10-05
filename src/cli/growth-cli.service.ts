@@ -415,18 +415,26 @@ export class GrowthCli {
   private async accountScore(args: ParsedArgs): Promise<number> {
     const ws = await this.resolveWorkspace(args);
     if (!ws) return 1;
-    const results = await this.accounts.score(
+    const outcomes = await this.accounts.score(
       ws.id,
       getOne(args, 'executor') ?? 'local-cli',
       getOne(args, 'account'),
     );
-    console.log(`Scored ${results.length} account(s) in ${ws.slug}:`);
-    for (const r of results) {
-      console.log(
-        `  ${r.accountId}\t${r.tier}\t${r.fitScore.toFixed(2)}\tsegments=[${r.matchedSegments.join(', ')}]`,
-      );
+    const ok = outcomes.filter((o) => o.ok).length;
+    console.log(
+      `Scored ${outcomes.length} account(s) in ${ws.slug}: ${ok} ok, ${outcomes.length - ok} failed`,
+    );
+    for (const o of outcomes) {
+      if (o.ok && o.assessment) {
+        const a = o.assessment;
+        console.log(
+          `  ok\t${o.name}\t${a.tier}\t${a.fitScore.toFixed(2)}\tsegments=[${a.matchedSegments.join(', ')}]`,
+        );
+      } else {
+        console.log(`  FAIL\t${o.name}\t${o.error ?? ''}`);
+      }
     }
-    return 0;
+    return outcomes.length > 0 && ok === 0 ? 1 : 0;
   }
 
   private async accountShow(args: ParsedArgs): Promise<number> {
