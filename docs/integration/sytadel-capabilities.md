@@ -50,12 +50,13 @@ model.
 These were checked and are **absent** today. Do not assume them:
 
 - **A shared SDK.** Each service is standalone; there is no common client library.
-- **Research or messaging scopes.** `auth-api`'s scope allowlist
-  (`src/modules/integrations/api-scopes.ts`) is a **closed** list containing only:
-  `payments:create/read`, `subscriptions:create/read`, `refunds:create`,
-  `usage:write/read`, `webhooks:manage`, `billing:read`. There is no
-  `research:*`, `leads:*`, `outreach:*`, or `content:*`. Adding any requires a PR
-  to that allowlist (unknown scopes are rejected at key creation, by design).
+- **Outreach / content scopes.** `auth-api`'s scope allowlist
+  (`src/modules/integrations/api-scopes.ts`) is a **closed** list. The
+  research/growth scopes `research:read`, `research:fetch`, and `leads:read` **have
+  landed** and are consumed by Growth OS. Still **absent**: `outreach:*` and
+  `content:*` (e.g. `outreach:draft/send`, `content:draft/publish`). Adding any
+  requires a PR to that allowlist (unknown scopes are rejected at key creation, by
+  design).
 - **A generic secrets manager**, **hosted agent runtime**, **generic
   business-action approval (HITL) system**, or a **universal audit-ingestion
   endpoint**. These are gaps relative to the target PaaS/control plane, not
@@ -63,10 +64,13 @@ These were checked and are **absent** today. Do not assume them:
 
 ## Consequence for Growth OS
 
-Because governed agent identity and agent scopes do not exist yet, Slice 1 uses a
-**local operator identity** (`executor_kind = local`) that is explicitly distinct
-from a Sytadel-authenticated principal. Growth OS is a self-contained system that
-happens to research the Sytadel market; it does not yet call Sytadel at runtime.
+Governed agent identity and research scopes now exist: agent actions can run under
+an **optional, feature-flagged Sytadel-authenticated identity** (`ServiceAccount`
+carrying `research:read` / `research:fetch` / `leads:read`) — see
+`src/modules/identity`. When that flag is off, Growth OS falls back to a **local
+operator identity** (`executor_kind = local`), explicitly distinct from a
+Sytadel-authenticated principal. Full per-agent `ServiceAccount` provisioning and
+runtime policy wiring (Slice 3 Governance) are still in progress.
 
 ## Governance integration plan (future — enters at roadmap Slice 3)
 
